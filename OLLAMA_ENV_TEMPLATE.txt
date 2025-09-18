@@ -1,0 +1,25 @@
+# Ollama Environment Configuration Template
+# Copy these lines to your .env file
+
+# AI Provider - Set to 'local' for Ollama
+AI_PROVIDER=local
+
+# Ollama Configuration
+LOCAL_AI_URL=http://localhost:11434
+LOCAL_AI_MODEL=llama2
+
+# Optional: Model Parameters
+OLLAMA_TEMPERATURE=0.7
+OLLAMA_MAX_TOKENS=1000
+OLLAMA_TOP_P=0.9
+OLLAMA_TOP_K=40
+OLLAMA_REPEAT_PENALTY=1.1
+
+# AI Features
+ENABLE_REAL_AI=true
+AI_FALLBACK_ENABLED=true
+AI_RESPONSE_TIMEOUT=30000
+
+# Debug Mode (optional)
+DEBUG_AI=false
+LOG_LEVEL=info

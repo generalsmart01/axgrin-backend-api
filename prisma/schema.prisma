@@ -1,0 +1,146 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+model User {
+  id                          String    @id @default(cuid())
+  email                       String    @unique
+  firstName                   String?
+  lastName                    String?
+  role                        Role      @default(USER)
+  gender                      Gender?
+  password                    String
+  refreshToken                String?
+  resetToken                  String?
+  resetTokenExp               DateTime?
+  emailVerified               Boolean   @default(false)
+  emailVerificationToken      String?
+  emailVerificationTokenExp   DateTime?
+  lastVerificationEmailSentAt DateTime?
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
+
+  profile       UserProfile?
+  incomes       Income[]
+  expenses      Expense[]
+  budgetGoals   BudgetGoal[]
+  categories    Category[]
+  chatHistory   ChatHistory[]
+  notifications Notification[]
+  settings      Settings?
+
+  loginActivities LoginActivity[] @relation("UserLoginActivities")
+
+  @@map("users")
+}
+
+model UserProfile {
+  id        String  @id @default(cuid())
+  userId    String  @unique
+  avatarUrl String?
+  bio       String?
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Income {
+  id     String   @id @default(cuid())
+  userId String
+  amount Float
+  source String
+  date   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Expense {
+  id         String   @id @default(cuid())
+  userId     String
+  amount     Float
+  categoryId String
+  note       String?
+  date       DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id])
+  category Category @relation(fields: [categoryId], references: [id])
+}
+
+model BudgetGoal {
+  id         String   @id @default(cuid())
+  userId     String
+  categoryId String
+  target     Float
+  startDate  DateTime
+  endDate    DateTime
+
+  user     User     @relation(fields: [userId], references: [id])
+  category Category @relation(fields: [categoryId], references: [id])
+}
+
+model Category {
+  id       String       @id @default(cuid())
+  userId   String
+  name     String
+  expenses Expense[]
+  goals    BudgetGoal[]
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model ChatHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  message   String
+  response  String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Settings {
+  id       String @id @default(cuid())
+  userId   String @unique
+  currency String @default("USD")
+  theme    String @default("system")
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model LoginActivity {
+  id        String   @id @default(uuid())
+  userId    String
+  email     String
+  ipAddress String
+  userAgent String
+  timestamp DateTime
+
+  user User @relation("UserLoginActivities", fields: [userId], references: [id], onDelete: Cascade)
+}
