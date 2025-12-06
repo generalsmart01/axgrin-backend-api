@@ -19,6 +19,7 @@ async function bootstrap() {
       'http://localhost:3000',
       'http://localhost:3001',
       'http://localhost:3003',
+      'https://axgrin-backend-api.vercel.app',
     ], // Add your frontend URLs
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
@@ -97,12 +98,24 @@ API requests are rate-limited to 100 requests per 15-minute window to prevent ab
       .addTag('Notifications', 'User notification management')
       .addTag('Income', 'Income tracking and management')
       .addTag('Admin Dashboard', 'Admin dashboard statistics and management')
-      .addTag('Admin - Subscription Configuration', 'Admin subscription pricing and trial configuration')
-      .addTag('Admin - Subscription Analytics', 'Admin subscription metrics and analytics')
-      .addTag('Admin - Subscription Management', 'Admin subscription management and operations')
+      .addTag(
+        'Admin - Subscription Configuration',
+        'Admin subscription pricing and trial configuration',
+      )
+      .addTag(
+        'Admin - Subscription Analytics',
+        'Admin subscription metrics and analytics',
+      )
+      .addTag(
+        'Admin - Subscription Management',
+        'Admin subscription management and operations',
+      )
       .addTag('Reports', 'Financial reports generation (Premium)')
       .addTag('Activity Analytics', 'User activity tracking and analytics')
-      .addTag('Payment & Subscriptions', 'Premium subscription payment and management')
+      .addTag(
+        'Payment & Subscriptions',
+        'Premium subscription payment and management',
+      )
       .build();
 
     const document = SwaggerModule.createDocument(app, config);
