@@ -14,7 +14,6 @@ export class SubscriptionStatusDto {
 
   @ApiPropertyOptional({
     description: 'Subscription details',
-    type: 'object',
     nullable: true,
   })
   subscription?: {
