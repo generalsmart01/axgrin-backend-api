@@ -17,9 +17,12 @@ async function createApp(): Promise<express.Express> {
   }
 
   const expressApp = express();
+  
+  // Configure body parsers directly on Express app
+  expressApp.use(express.json({ limit: '10mb' }));
+  expressApp.use(express.urlencoded({ extended: true, limit: '10mb' }));
+  
   const adapter = new ExpressAdapter(expressApp);
-  adapter.useBodyParser('json', { limit: '10mb' });
-  adapter.useBodyParser('urlencoded', { extended: true, limit: '10mb' });
 
   const app = await NestFactory.create(AppModule, adapter, {
     rawBody: true,
