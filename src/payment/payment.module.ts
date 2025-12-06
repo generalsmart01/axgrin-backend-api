@@ -1,5 +1,6 @@
 // src/payment/payment.module.ts
 import { Module, forwardRef } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { PaymentController } from './payment.controller';
 import { PaymentWebhookController } from './payment-webhook.controller';
 import { PaymentService } from './payment.service';
@@ -10,6 +11,7 @@ import { AdminModule } from '../admin/admin.module';
 
 @Module({
   imports: [
+    ConfigModule,
     AuthModule,
     NotificationModule,
     forwardRef(() => AdminModule),

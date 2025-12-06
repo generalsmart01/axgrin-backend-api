@@ -437,6 +437,9 @@ export class PaymentService {
       ? SubscriptionPlan.YEARLY
       : SubscriptionPlan.MONTHLY;
 
+    // Type assertion to access snake_case properties
+    const sub = stripeSubscription as any;
+
     await this.prisma.subscription.upsert({
       where: { userId },
       create: {
@@ -446,14 +449,14 @@ export class PaymentService {
         stripePriceId: stripeSubscription.items.data[0]?.price?.id,
         plan,
         status,
-        currentPeriodStart: new Date((stripeSubscription['current_period_start'] as number) * 1000),
-        currentPeriodEnd: new Date((stripeSubscription['current_period_end'] as number) * 1000),
-        cancelAtPeriodEnd: stripeSubscription['cancel_at_period_end'] as boolean,
-        trialStart: stripeSubscription['trial_start']
-          ? new Date((stripeSubscription['trial_start'] as number) * 1000)
+        currentPeriodStart: new Date((sub.current_period_start as number) * 1000),
+        currentPeriodEnd: new Date((sub.current_period_end as number) * 1000),
+        cancelAtPeriodEnd: sub.cancel_at_period_end as boolean,
+        trialStart: sub.trial_start
+          ? new Date((sub.trial_start as number) * 1000)
           : null,
-        trialEnd: stripeSubscription['trial_end']
-          ? new Date((stripeSubscription['trial_end'] as number) * 1000)
+        trialEnd: sub.trial_end
+          ? new Date((sub.trial_end as number) * 1000)
           : null,
       },
       update: {
@@ -461,14 +464,14 @@ export class PaymentService {
         stripePriceId: stripeSubscription.items.data[0]?.price?.id,
         plan,
         status,
-        currentPeriodStart: new Date((stripeSubscription['current_period_start'] as number) * 1000),
-        currentPeriodEnd: new Date((stripeSubscription['current_period_end'] as number) * 1000),
-        cancelAtPeriodEnd: stripeSubscription['cancel_at_period_end'] as boolean,
-        trialStart: stripeSubscription['trial_start']
-          ? new Date((stripeSubscription['trial_start'] as number) * 1000)
+        currentPeriodStart: new Date((sub.current_period_start as number) * 1000),
+        currentPeriodEnd: new Date((sub.current_period_end as number) * 1000),
+        cancelAtPeriodEnd: sub.cancel_at_period_end as boolean,
+        trialStart: sub.trial_start
+          ? new Date((sub.trial_start as number) * 1000)
           : null,
-        trialEnd: stripeSubscription['trial_end']
-          ? new Date((stripeSubscription['trial_end'] as number) * 1000)
+        trialEnd: sub.trial_end
+          ? new Date((sub.trial_end as number) * 1000)
           : null,
       },
     });
