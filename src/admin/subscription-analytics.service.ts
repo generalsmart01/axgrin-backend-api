@@ -258,7 +258,7 @@ export class SubscriptionAnalyticsService {
   private async calculateEstimatedRevenue(): Promise<{
     monthlyRevenue: number;
     yearlyRevenue: number;
-  } {
+  }> {
     // Get active subscriptions with their plans
     const activeSubscriptions = await this.prisma.subscription.findMany({
       where: {
