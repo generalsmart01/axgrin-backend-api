@@ -18,7 +18,7 @@ export class SubscriptionConfigService {
   async upsertConfig(
     dto: CreateSubscriptionConfigDto,
   ): Promise<SubscriptionConfigResponseDto> {
-    return this.prisma.subscriptionConfig.upsert({
+    const config = await this.prisma.subscriptionConfig.upsert({
       where: { plan: dto.plan },
       create: {
         plan: dto.plan,
@@ -38,6 +38,7 @@ export class SubscriptionConfigService {
         isActive: dto.isActive !== undefined ? dto.isActive : true,
       },
     });
+    return this.mapToDto(config);
   }
 
   /**
@@ -55,7 +56,7 @@ export class SubscriptionConfigService {
       throw new NotFoundException(`Subscription config for plan ${plan} not found`);
     }
 
-    return this.prisma.subscriptionConfig.update({
+    const updated = await this.prisma.subscriptionConfig.update({
       where: { plan },
       data: {
         ...(dto.stripePriceId && { stripePriceId: dto.stripePriceId }),
@@ -66,15 +67,17 @@ export class SubscriptionConfigService {
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
       },
     });
+    return this.mapToDto(updated);
   }
 
   /**
    * Get all subscription configurations
    */
   async getAllConfigs(): Promise<SubscriptionConfigResponseDto[]> {
-    return this.prisma.subscriptionConfig.findMany({
+    const configs = await this.prisma.subscriptionConfig.findMany({
       orderBy: { plan: 'asc' },
     });
+    return configs.map((config) => this.mapToDto(config));
   }
 
   /**
@@ -89,19 +92,20 @@ export class SubscriptionConfigService {
       throw new NotFoundException(`Subscription config for plan ${plan} not found`);
     }
 
-    return config;
+    return this.mapToDto(config);
   }
 
   /**
    * Get active subscription configuration by plan
    */
   async getActiveConfigByPlan(plan: SubscriptionPlan): Promise<SubscriptionConfigResponseDto | null> {
-    return this.prisma.subscriptionConfig.findFirst({
+    const config = await this.prisma.subscriptionConfig.findFirst({
       where: {
         plan,
         isActive: true,
       },
     });
+    return config ? this.mapToDto(config) : null;
   }
 
   /**
@@ -121,6 +125,16 @@ export class SubscriptionConfigService {
     });
 
     return { message: `Subscription config for ${plan} plan deleted successfully` };
+  }
+
+  /**
+   * Map Prisma model to DTO, converting Decimal to number
+   */
+  private mapToDto(config: any): SubscriptionConfigResponseDto {
+    return {
+      ...config,
+      price: Number(config.price),
+    };
   }
 }
 

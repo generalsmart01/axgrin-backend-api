@@ -27,7 +27,7 @@ export class PaymentService {
       console.warn('STRIPE_SECRET_KEY not found. Payment features will be disabled.');
     } else {
       this.stripe = new Stripe(stripeSecretKey, {
-        apiVersion: '2024-12-18.acacia',
+        apiVersion: '2025-11-17.clover',
       });
     }
   }
@@ -254,8 +254,7 @@ export class PaymentService {
       },
     });
 
-    await this.notificationService.create({
-      userId,
+    await this.notificationService.create(userId, {
       message: 'Your premium subscription will be canceled at the end of the current billing period.',
     });
 
@@ -292,8 +291,7 @@ export class PaymentService {
       },
     });
 
-    await this.notificationService.create({
-      userId,
+    await this.notificationService.create(userId, {
       message: 'Your premium subscription has been reactivated.',
     });
 
@@ -335,6 +333,7 @@ export class PaymentService {
     const subscriptionId = session.subscription as string;
     if (!subscriptionId) return;
 
+    if (!this.stripe) return;
     const subscription = await this.stripe.subscriptions.retrieve(subscriptionId);
     await this.updateSubscriptionFromStripe(userId, subscription);
   }
@@ -371,8 +370,7 @@ export class PaymentService {
         },
       });
 
-      await this.notificationService.create({
-        userId: subscription.userId,
+      await this.notificationService.create(subscription.userId, {
         message: 'Your premium subscription has been canceled. You have been downgraded to a free account.',
       });
     }
@@ -404,8 +402,7 @@ export class PaymentService {
         );
       }
 
-      await this.notificationService.create({
-        userId: subscription.userId,
+      await this.notificationService.create(subscription.userId, {
         message: 'Your premium subscription payment was successful. Thank you for your subscription!',
       });
     }
@@ -425,8 +422,7 @@ export class PaymentService {
         },
       });
 
-      await this.notificationService.create({
-        userId: subscription.userId,
+      await this.notificationService.create(subscription.userId, {
         message: 'Your premium subscription payment failed. Please update your payment method to continue enjoying premium features.',
       });
     }
@@ -450,14 +446,14 @@ export class PaymentService {
         stripePriceId: stripeSubscription.items.data[0]?.price?.id,
         plan,
         status,
-        currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
-        currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
-        cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
-        trialStart: stripeSubscription.trial_start
-          ? new Date(stripeSubscription.trial_start * 1000)
+        currentPeriodStart: new Date((stripeSubscription['current_period_start'] as number) * 1000),
+        currentPeriodEnd: new Date((stripeSubscription['current_period_end'] as number) * 1000),
+        cancelAtPeriodEnd: stripeSubscription['cancel_at_period_end'] as boolean,
+        trialStart: stripeSubscription['trial_start']
+          ? new Date((stripeSubscription['trial_start'] as number) * 1000)
           : null,
-        trialEnd: stripeSubscription.trial_end
-          ? new Date(stripeSubscription.trial_end * 1000)
+        trialEnd: stripeSubscription['trial_end']
+          ? new Date((stripeSubscription['trial_end'] as number) * 1000)
           : null,
       },
       update: {
@@ -465,14 +461,14 @@ export class PaymentService {
         stripePriceId: stripeSubscription.items.data[0]?.price?.id,
         plan,
         status,
-        currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
-        currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
-        cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
-        trialStart: stripeSubscription.trial_start
-          ? new Date(stripeSubscription.trial_start * 1000)
+        currentPeriodStart: new Date((stripeSubscription['current_period_start'] as number) * 1000),
+        currentPeriodEnd: new Date((stripeSubscription['current_period_end'] as number) * 1000),
+        cancelAtPeriodEnd: stripeSubscription['cancel_at_period_end'] as boolean,
+        trialStart: stripeSubscription['trial_start']
+          ? new Date((stripeSubscription['trial_start'] as number) * 1000)
           : null,
-        trialEnd: stripeSubscription.trial_end
-          ? new Date(stripeSubscription.trial_end * 1000)
+        trialEnd: stripeSubscription['trial_end']
+          ? new Date((stripeSubscription['trial_end'] as number) * 1000)
           : null,
       },
     });

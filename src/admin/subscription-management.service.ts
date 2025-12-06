@@ -40,7 +40,8 @@ export class SubscriptionManagementService {
           select: {
             id: true,
             email: true,
-            name: true,
+            firstName: true,
+            lastName: true,
             role: true,
           },
         },
@@ -65,7 +66,8 @@ export class SubscriptionManagementService {
           select: {
             id: true,
             email: true,
-            name: true,
+            firstName: true,
+            lastName: true,
             role: true,
           },
         },
@@ -150,7 +152,8 @@ export class SubscriptionManagementService {
           select: {
             id: true,
             email: true,
-            name: true,
+            firstName: true,
+            lastName: true,
             role: true,
           },
         },
@@ -174,8 +177,7 @@ export class SubscriptionManagementService {
     }
 
     // Send notification
-    await this.notificationService.create({
-      userId: updated.userId,
+    await this.notificationService.create(updated.userId, {
       message: `Your subscription has been updated by an administrator.`,
     });
 
@@ -230,8 +232,7 @@ export class SubscriptionManagementService {
         );
       }
 
-      await this.notificationService.create({
-        userId: subscription.userId,
+      await this.notificationService.create(subscription.userId, {
         message: `Your subscription has been canceled immediately. ${dto.reason ? `Reason: ${dto.reason}` : ''}`,
       });
     } else {
@@ -256,8 +257,7 @@ export class SubscriptionManagementService {
         },
       });
 
-      await this.notificationService.create({
-        userId: subscription.userId,
+      await this.notificationService.create(subscription.userId, {
         message: `Your subscription will be canceled at the end of the current billing period. ${dto.reason ? `Reason: ${dto.reason}` : ''}`,
       });
     }
@@ -315,7 +315,8 @@ export class SubscriptionManagementService {
           select: {
             id: true,
             email: true,
-            name: true,
+            firstName: true,
+            lastName: true,
             role: true,
           },
         },
@@ -330,8 +331,7 @@ export class SubscriptionManagementService {
       );
     }
 
-    await this.notificationService.create({
-      userId: updated.userId,
+    await this.notificationService.create(updated.userId, {
       message: `Your subscription has been reactivated. ${dto.reason ? `Reason: ${dto.reason}` : ''}`,
     });
 
@@ -388,15 +388,15 @@ export class SubscriptionManagementService {
           select: {
             id: true,
             email: true,
-            name: true,
+            firstName: true,
+            lastName: true,
             role: true,
           },
         },
       },
     });
 
-    await this.notificationService.create({
-      userId: updated.userId,
+    await this.notificationService.create(updated.userId, {
       message: `Your trial period has been extended by ${additionalDays} days.`,
     });
 
