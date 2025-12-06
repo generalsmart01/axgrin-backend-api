@@ -29,11 +29,23 @@ async function createApp(): Promise<express.Express> {
   });
 
   // Enable CORS
+  const allowedOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim())
+    : [
+        'http://localhost:3002',
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://localhost:3003',
+        'https://axgrin.vercel.app',
+      ];
+
   app.enableCors({
-    origin: process.env.CORS_ORIGINS?.split(',') || ['*'],
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     credentials: true,
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
 
   if (process.env.NODE_ENV !== 'production') {
@@ -94,7 +106,13 @@ async function createApp(): Promise<express.Express> {
       transform: true,
     }),
   );
-  app.use(helmet());
+  // Configure helmet to not interfere with CORS
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      crossOriginEmbedderPolicy: false,
+    }),
+  );
   app.use(
     rateLimit({
       windowMs: 15 * 60 * 1000,

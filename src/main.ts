@@ -140,7 +140,13 @@ API requests are rate-limited to 100 requests per 15-minute window to prevent ab
       transform: true,
     }),
   );
-  app.use(helmet());
+  // Configure helmet to not interfere with CORS
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      crossOriginEmbedderPolicy: false,
+    }),
+  );
   app.use(
     rateLimit({
       windowMs: 15 * 60 * 1000, // 15 mins
