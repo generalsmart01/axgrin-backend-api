@@ -19,7 +19,7 @@ async function bootstrap() {
       'http://localhost:3000',
       'http://localhost:3001',
       'http://localhost:3003',
-      'https://axgrin-backend-api.vercel.app',
+      'https://axgrin.vercel.app',
     ], // Add your frontend URLs
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
