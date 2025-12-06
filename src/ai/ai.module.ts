@@ -2,6 +2,7 @@
 import { Module } from '@nestjs/common';
 import { AIService } from './ai.service';
 import { AIController } from './ai.controller';
+import { AIPremiumController } from './ai-premium.controller';
 import { FinancialContextService } from './financial-context.service';
 import { ResponseTemplateService } from './response-template.service';
 import { AIIntegrationService } from './ai-integration.service';
@@ -10,7 +11,7 @@ import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [NotificationModule],
-  controllers: [AIController],
+  controllers: [AIController, AIPremiumController],
   providers: [
     AIService,
     FinancialContextService,

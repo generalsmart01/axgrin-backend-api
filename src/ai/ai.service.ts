@@ -10,6 +10,9 @@ export interface AIResponse {
     spendingAnalysis?: any;
     savingsOpportunities?: any[];
     recommendations?: any[];
+    budgetStatus?: any;
+    uncategorizedExpenses?: any[];
+    currentGoals?: any[];
   };
   suggestedActions?: string[];
   conversationId?: string;
@@ -42,7 +45,7 @@ export class AIService {
     const intent = this.analyzeIntent(message);
 
     // Get user's financial context if requested
-    let financialContext = null;
+    let financialContext: any = null;
     if (context.includeFinancialData) {
       financialContext =
         await this.financialContextService.getUserFinancialContext(userId);
@@ -264,7 +267,7 @@ export class AIService {
   }
 
   private generateBudgetActions(budgetStatus: any): string[] {
-    const actions = [];
+    const actions: string[] = [];
 
     if (budgetStatus.overBudgetCategories.length > 0) {
       actions.push('Review overspending categories');
@@ -282,7 +285,7 @@ export class AIService {
   }
 
   private generateSavingsActions(savingsOpportunities: any[]): string[] {
-    const actions = [];
+    const actions: string[] = [];
 
     if (savingsOpportunities.length > 0) {
       actions.push('Implement suggested savings strategies');

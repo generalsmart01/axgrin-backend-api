@@ -3,8 +3,9 @@ import { Module } from '@nestjs/common';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import { MailModule } from './mail/mail.module';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { RolesGuard } from './auth/guards/roles.guard';
+import { ActivityLoggingInterceptor } from './common/interceptors/activity-logging.interceptor';
 import { AuthModule } from './auth/auth.module'; // 👈 Add this
 import { UsersModule } from './users/users.module';
 import { IncomeModule } from './income/income.module';
@@ -17,6 +18,9 @@ import { SettingsModule } from './settings/settings.module';
 import { ProfileModule } from './profile/profile.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { AIModule } from './ai/ai.module';
+import { AdminModule } from './admin/admin.module';
+import { ReportsModule } from './reports/reports.module';
+import { PaymentModule } from './payment/payment.module';
 
 @Module({
   imports: [
@@ -32,6 +36,9 @@ import { AIModule } from './ai/ai.module';
     ProfileModule,
     AnalyticsModule,
     AIModule,
+    AdminModule,
+    ReportsModule,
+    PaymentModule,
     MailerModule.forRoot({
       transport: {
         host: 'smtp.gmail.com',
@@ -55,6 +62,12 @@ import { AIModule } from './ai/ai.module';
     }),
 
     MailModule,
+  ],
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ActivityLoggingInterceptor,
+    },
   ],
 })
 export class AppModule {}

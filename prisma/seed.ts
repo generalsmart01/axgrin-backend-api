@@ -1,36 +1,54 @@
 // prisma/seed.ts
-import 'dotenv/config';
-import { PrismaClient } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
+import { PrismaClient, SubscriptionPlan } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  if (!process.env.ADMIN_PWD) {
-    throw new Error('Missing ADMIN_PWD in environment variables');
-  }
+  console.log('🌱 Starting database seed...');
 
-  const hashed = await bcrypt.hash(process.env.ADMIN_PWD!, 10);
-
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@axgrin.com' },
+  // Seed subscription configurations
+  console.log('📦 Seeding subscription configurations...');
+  
+  const monthlyConfig = await prisma.subscriptionConfig.upsert({
+    where: { plan: SubscriptionPlan.MONTHLY },
     update: {},
     create: {
-      email: 'admin@axgrin.com',
-      password: hashed,
-      role: 'ADMIN',
-      firstName: 'Admin',
-      lastName: 'User',
-      emailVerified: true,
+      plan: SubscriptionPlan.MONTHLY,
+      stripePriceId: process.env.STRIPE_PRICE_ID_MONTHLY || 'price_monthly_placeholder',
+      price: 9.99,
+      currency: 'USD',
+      trialDays: 7,
+      description: 'Monthly premium subscription with all features',
+      isActive: true,
     },
   });
 
-  console.log('Admin created:', admin);
+  const yearlyConfig = await prisma.subscriptionConfig.upsert({
+    where: { plan: SubscriptionPlan.YEARLY },
+    update: {},
+    create: {
+      plan: SubscriptionPlan.YEARLY,
+      stripePriceId: process.env.STRIPE_PRICE_ID_YEARLY || 'price_yearly_placeholder',
+      price: 99.99,
+      currency: 'USD',
+      trialDays: 14,
+      description: 'Yearly premium subscription with all features (save 17%)',
+      isActive: true,
+    },
+  });
+
+  console.log('✅ Subscription configurations seeded:');
+  console.log(`   - Monthly: $${monthlyConfig.price} (${monthlyConfig.trialDays} day trial)`);
+  console.log(`   - Yearly: $${yearlyConfig.price} (${yearlyConfig.trialDays} day trial)`);
+
+  console.log('✅ Database seed completed!');
 }
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error('❌ Error seeding database:', e);
     process.exit(1);
   })
-  .finally(() => prisma.$disconnect());
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

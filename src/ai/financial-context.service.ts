@@ -25,9 +25,27 @@ export interface BudgetStatus {
   totalBudget: number;
   totalSpent: number;
   remaining: number;
-  overBudgetCategories: any[];
-  underBudgetCategories: any[];
-  onTrackCategories: any[];
+  overBudgetCategories: Array<{
+    category: string;
+    budget: number;
+    spent: number;
+    overage: number;
+    percentage: number;
+  }>;
+  underBudgetCategories: Array<{
+    category: string;
+    budget: number;
+    spent: number;
+    remaining: number;
+    percentage: number;
+  }>;
+  onTrackCategories: Array<{
+    category: string;
+    budget: number;
+    spent: number;
+    remaining: number;
+    percentage: number;
+  }>;
 }
 
 @Injectable()
@@ -57,7 +75,10 @@ export class FinancialContextService {
     };
   }
 
-  async getSpendingAnalysis(userId: string, period: string): Promise<SpendingAnalysis> {
+  async getSpendingAnalysis(
+    userId: string,
+    period: string,
+  ): Promise<SpendingAnalysis> {
     const startDate = this.getPeriodStartDate(period);
     const expenses = await this.prisma.expense.findMany({
       where: {
@@ -71,7 +92,10 @@ export class FinancialContextService {
       },
     });
 
-    const totalSpent = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const totalSpent = expenses.reduce(
+      (sum, expense) => sum + expense.amount,
+      0,
+    );
     const daysInPeriod = this.getDaysInPeriod(period);
     const averageDaily = totalSpent / daysInPeriod;
 
@@ -91,8 +115,16 @@ export class FinancialContextService {
 
   async getBudgetStatus(userId: string): Promise<BudgetStatus> {
     const currentMonth = new Date();
-    const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-    const endOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+    const startOfMonth = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth(),
+      1,
+    );
+    const endOfMonth = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth() + 1,
+      0,
+    );
 
     const budgetGoals = await this.prisma.budgetGoal.findMany({
       where: {
@@ -106,20 +138,42 @@ export class FinancialContextService {
     });
 
     const totalBudget = budgetGoals.reduce((sum, goal) => sum + goal.target, 0);
-    
-    const categorySpending = await this.getCategorySpending(userId, startOfMonth, endOfMonth);
-    
-    const overBudgetCategories = [];
-    const underBudgetCategories = [];
-    const onTrackCategories = [];
+
+    const categorySpending = await this.getCategorySpending(
+      userId,
+      startOfMonth,
+      endOfMonth,
+    );
+
+    const overBudgetCategories: Array<{
+      category: string;
+      budget: number;
+      spent: number;
+      overage: number;
+      percentage: number;
+    }> = [];
+    const underBudgetCategories: Array<{
+      category: string;
+      budget: number;
+      spent: number;
+      remaining: number;
+      percentage: number;
+    }> = [];
+    const onTrackCategories: Array<{
+      category: string;
+      budget: number;
+      spent: number;
+      remaining: number;
+      percentage: number;
+    }> = [];
     let totalSpent = 0;
 
     for (const goal of budgetGoals) {
       const spent = categorySpending[goal.categoryId] || 0;
       totalSpent += spent;
-      
+
       const percentage = (spent / goal.target) * 100;
-      
+
       if (percentage > 100) {
         overBudgetCategories.push({
           category: goal.category.name,
@@ -158,12 +212,16 @@ export class FinancialContextService {
   }
 
   async getSavingsOpportunities(userId: string): Promise<any[]> {
-    const spendingAnalysis = await this.getSpendingAnalysis(userId, 'current_month');
-    const opportunities = [];
+    const spendingAnalysis = await this.getSpendingAnalysis(
+      userId,
+      'current_month',
+    );
+    const opportunities: any[] = [];
 
     // Analyze high-spending categories
     for (const category of spendingAnalysis.topCategories) {
-      if (category.amount > 200) { // Categories with more than $200 spending
+      if (category.amount > 200) {
+        // Categories with more than $200 spending
         opportunities.push({
           type: 'HIGH_SPENDING',
           category: category.name,
@@ -182,7 +240,10 @@ export class FinancialContextService {
         description: expense.note || 'Recurring expense',
         currentAmount: expense.amount,
         potentialSavings: expense.amount * 0.1, // 10% potential savings
-        suggestions: ['Review if this expense is necessary', 'Look for cheaper alternatives'],
+        suggestions: [
+          'Review if this expense is necessary',
+          'Look for cheaper alternatives',
+        ],
       });
     }
 
@@ -201,7 +262,7 @@ export class FinancialContextService {
       take: 10,
     });
 
-    return expenses.map(expense => ({
+    return expenses.map((expense) => ({
       id: expense.id,
       amount: expense.amount,
       note: expense.note,
@@ -214,34 +275,40 @@ export class FinancialContextService {
     const goals = await this.prisma.budgetGoal.findMany({
       where: { userId },
       include: { category: true },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { startDate: 'desc' },
     });
 
-    return goals.map(goal => ({
-      id: goal.id,
-      category: goal.category.name,
-      target: goal.target,
-      startDate: goal.startDate,
-      endDate: goal.endDate,
-      progress: await this.calculateGoalProgress(goal.id),
-    }));
+    return Promise.all(
+      goals.map(async (goal) => ({
+        id: goal.id,
+        category: goal.category.name,
+        target: goal.target,
+        startDate: goal.startDate,
+        endDate: goal.endDate,
+        progress: await this.calculateGoalProgress(goal.id),
+      })),
+    );
   }
 
   async getSpendingTrends(userId: string): Promise<any> {
-    const last6Months = [];
+    const last6Months: Array<{
+      month: string;
+      total: number;
+      count: number;
+    }> = [];
     for (let i = 5; i >= 0; i--) {
       const date = new Date();
       date.setMonth(date.getMonth() - i);
       const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
       const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-      
+
       const expenses = await this.prisma.expense.findMany({
         where: {
           userId,
           date: { gte: startOfMonth, lte: endOfMonth },
         },
       });
-      
+
       const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
       last6Months.push({
         month: date.toISOString().slice(0, 7),
@@ -252,7 +319,8 @@ export class FinancialContextService {
 
     return {
       monthlyTrends: last6Months,
-      averageMonthly: last6Months.reduce((sum, month) => sum + month.total, 0) / 6,
+      averageMonthly:
+        last6Months.reduce((sum, month) => sum + month.total, 0) / 6,
       trend: this.calculateTrend(last6Months),
     };
   }
@@ -260,27 +328,30 @@ export class FinancialContextService {
   async getFinancialHealthScore(userId: string): Promise<number> {
     const context = await this.getUserFinancialContext(userId);
     const budgetStatus = await this.getBudgetStatus(userId);
-    
+
     let score = 100;
-    
+
     // Deduct points for overspending
     score -= budgetStatus.overBudgetCategories.length * 10;
-    
+
     // Deduct points for negative net income
     if (context.netIncome < 0) {
       score -= 30;
     }
-    
+
     // Add points for having budget goals
     if (context.budgetGoals.length > 0) {
       score += 10;
     }
-    
+
     // Add points for good spending patterns
-    if (budgetStatus.onTrackCategories.length > budgetStatus.overBudgetCategories.length) {
+    if (
+      budgetStatus.onTrackCategories.length >
+      budgetStatus.overBudgetCategories.length
+    ) {
       score += 15;
     }
-    
+
     return Math.max(0, Math.min(100, score));
   }
 
@@ -312,10 +383,13 @@ export class FinancialContextService {
     });
   }
 
-  private async getRecentExpenses(userId: string, days: number): Promise<any[]> {
+  private async getRecentExpenses(
+    userId: string,
+    days: number,
+  ): Promise<any[]> {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
-    
+
     return this.prisma.expense.findMany({
       where: {
         userId,
@@ -330,10 +404,13 @@ export class FinancialContextService {
   private async analyzeSpendingPatterns(userId: string): Promise<any> {
     const expenses = await this.getRecentExpenses(userId, 30);
     const categoryTotals = this.groupExpensesByCategory(expenses);
-    
+    const categoryValues = Object.values(categoryTotals) as any[];
+
     return {
-      totalCategories: categoryTotals.length,
-      averagePerCategory: Object.values(categoryTotals).reduce((sum: number, cat: any) => sum + cat.amount, 0) / categoryTotals.length,
+      totalCategories: categoryValues.length,
+      averagePerCategory:
+        categoryValues.reduce((sum: number, cat: any) => sum + cat.amount, 0) /
+        categoryValues.length,
       mostSpentCategory: this.getTopCategories(categoryTotals)[0],
     };
   }
@@ -359,7 +436,11 @@ export class FinancialContextService {
       case 'current_month':
         return new Date().getDate();
       case 'last_month':
-        return new Date(new Date().getFullYear(), new Date().getMonth(), 0).getDate();
+        return new Date(
+          new Date().getFullYear(),
+          new Date().getMonth(),
+          0,
+        ).getDate();
       case 'last_30_days':
         return 30;
       default:
@@ -369,7 +450,7 @@ export class FinancialContextService {
 
   private groupExpensesByCategory(expenses: any[]): any {
     const grouped = {};
-    expenses.forEach(expense => {
+    expenses.forEach((expense) => {
       const categoryName = expense.category?.name || 'Uncategorized';
       if (!grouped[categoryName]) {
         grouped[categoryName] = { name: categoryName, amount: 0, count: 0 };
@@ -389,11 +470,11 @@ export class FinancialContextService {
   private analyzeTrends(expenses: any[]): any[] {
     // Simple trend analysis - can be enhanced
     const dailyTotals = {};
-    expenses.forEach(expense => {
+    expenses.forEach((expense) => {
       const day = expense.date.toISOString().split('T')[0];
       dailyTotals[day] = (dailyTotals[day] || 0) + expense.amount;
     });
-    
+
     return Object.entries(dailyTotals).map(([date, amount]) => ({
       date,
       amount,
@@ -402,13 +483,14 @@ export class FinancialContextService {
 
   private detectAnomalies(expenses: any[]): any[] {
     // Simple anomaly detection - can be enhanced
-    const amounts = expenses.map(e => e.amount);
-    const average = amounts.reduce((sum, amount) => sum + amount, 0) / amounts.length;
+    const amounts = expenses.map((e) => e.amount);
+    const average =
+      amounts.reduce((sum, amount) => sum + amount, 0) / amounts.length;
     const threshold = average * 2; // 2x average is considered anomaly
-    
+
     return expenses
-      .filter(expense => expense.amount > threshold)
-      .map(expense => ({
+      .filter((expense) => expense.amount > threshold)
+      .map((expense) => ({
         id: expense.id,
         amount: expense.amount,
         note: expense.note,
@@ -417,7 +499,11 @@ export class FinancialContextService {
       }));
   }
 
-  private async getCategorySpending(userId: string, startDate: Date, endDate: Date): Promise<any> {
+  private async getCategorySpending(
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<any> {
     const expenses = await this.prisma.expense.findMany({
       where: {
         userId,
@@ -427,9 +513,10 @@ export class FinancialContextService {
     });
 
     const categorySpending = {};
-    expenses.forEach(expense => {
+    expenses.forEach((expense) => {
       const categoryId = expense.categoryId;
-      categorySpending[categoryId] = (categorySpending[categoryId] || 0) + expense.amount;
+      categorySpending[categoryId] =
+        (categorySpending[categoryId] || 0) + expense.amount;
     });
 
     return categorySpending;
@@ -443,13 +530,13 @@ export class FinancialContextService {
         'Look for restaurant deals',
         'Buy generic brands',
       ],
-      'Transportation': [
+      Transportation: [
         'Use public transportation',
         'Carpool with colleagues',
         'Walk or bike for short trips',
         'Compare gas prices',
       ],
-      'Entertainment': [
+      Entertainment: [
         'Look for free events',
         'Use streaming services instead of cable',
         'Find local deals and discounts',
@@ -457,29 +544,47 @@ export class FinancialContextService {
       ],
     };
 
-    return suggestions[categoryName] || [
-      'Review if this expense is necessary',
-      'Look for cheaper alternatives',
-      'Set a spending limit',
-    ];
+    return (
+      suggestions[categoryName] || [
+        'Review if this expense is necessary',
+        'Look for cheaper alternatives',
+        'Set a spending limit',
+      ]
+    );
   }
 
   private suggestCategory(note: string): string {
     const lowerNote = note.toLowerCase();
-    
-    if (lowerNote.includes('food') || lowerNote.includes('restaurant') || lowerNote.includes('grocery')) {
+
+    if (
+      lowerNote.includes('food') ||
+      lowerNote.includes('restaurant') ||
+      lowerNote.includes('grocery')
+    ) {
       return 'Food & Dining';
     }
-    if (lowerNote.includes('gas') || lowerNote.includes('uber') || lowerNote.includes('transport')) {
+    if (
+      lowerNote.includes('gas') ||
+      lowerNote.includes('uber') ||
+      lowerNote.includes('transport')
+    ) {
       return 'Transportation';
     }
-    if (lowerNote.includes('movie') || lowerNote.includes('entertainment') || lowerNote.includes('netflix')) {
+    if (
+      lowerNote.includes('movie') ||
+      lowerNote.includes('entertainment') ||
+      lowerNote.includes('netflix')
+    ) {
       return 'Entertainment';
     }
-    if (lowerNote.includes('medical') || lowerNote.includes('pharmacy') || lowerNote.includes('health')) {
+    if (
+      lowerNote.includes('medical') ||
+      lowerNote.includes('pharmacy') ||
+      lowerNote.includes('health')
+    ) {
       return 'Healthcare';
     }
-    
+
     return 'Miscellaneous';
   }
 
@@ -493,7 +598,7 @@ export class FinancialContextService {
 
     // Group by note/description to find recurring patterns
     const grouped = {};
-    expenses.forEach(expense => {
+    expenses.forEach((expense) => {
       const key = expense.note || 'Unknown';
       if (!grouped[key]) {
         grouped[key] = [];
@@ -502,7 +607,7 @@ export class FinancialContextService {
     });
 
     // Find expenses that appear multiple times
-    const recurring = [];
+    const recurring: any[] = [];
     Object.entries(grouped).forEach(([note, expenseList]: [string, any[]]) => {
       if (expenseList.length >= 2) {
         recurring.push(expenseList[0]); // Take the most recent one
@@ -532,13 +637,13 @@ export class FinancialContextService {
 
   private calculateTrend(monthlyData: any[]): string {
     if (monthlyData.length < 2) return 'stable';
-    
+
     const recent = monthlyData.slice(-2);
-    const change = ((recent[1].total - recent[0].total) / recent[0].total) * 100;
-    
+    const change =
+      ((recent[1].total - recent[0].total) / recent[0].total) * 100;
+
     if (change > 10) return 'increasing';
     if (change < -10) return 'decreasing';
     return 'stable';
   }
 }
-

@@ -195,7 +195,7 @@ export class AIIntegrationService {
         'last_3_months',
       );
 
-    const recommendations = [];
+    const recommendations: any[] = [];
 
     // Analyze spending patterns
     const averageMonthly = spendingAnalysis.totalSpent;
@@ -248,9 +248,9 @@ export class AIIntegrationService {
     const assessment = {
       score: healthScore,
       level: this.getHealthLevel(healthScore),
-      strengths: [],
-      weaknesses: [],
-      recommendations: [],
+      strengths: [] as string[],
+      weaknesses: [] as string[],
+      recommendations: [] as string[],
     };
 
     // Analyze strengths

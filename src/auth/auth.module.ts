@@ -8,6 +8,8 @@ import { JwtStrategy } from './strategies/jwt.strategies';
 import { AuthController } from './auth.controller'; // ✅ Import the controller
 import { UsersModule } from 'src/users/users.module';
 import { NotificationModule } from '../notification/notification.module';
+import { RoleUpgradeService } from './services/role-upgrade.service';
+
 @Module({
   imports: [
     PassportModule,
@@ -20,7 +22,7 @@ import { NotificationModule } from '../notification/notification.module';
   ],
 
   controllers: [AuthController], // ✅ Register the controller here
-  providers: [AuthService, JwtStrategy, PrismaService],
-  exports: [AuthService],
+  providers: [AuthService, JwtStrategy, PrismaService, RoleUpgradeService],
+  exports: [AuthService, RoleUpgradeService],
 })
 export class AuthModule {}

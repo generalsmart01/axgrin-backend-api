@@ -43,6 +43,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { VerifyEmailQueryDto } from './dto/verify-email-query.dto';
+import { UpgradeRoleDto } from './dto/upgrade-role.dto';
 
 @ApiTags('Auth') // Groups under "Auth" in Swagger UI
 @Controller('auth')
@@ -270,5 +271,93 @@ export class AuthController {
   @ApiOperation({ summary: 'Admin-only stats' })
   getAdminStats() {
     return 'Admin-only data';
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Post('upgrade-role')
+  @ApiOperation({
+    summary: 'Upgrade user role',
+    description:
+      'Upgrade user role (e.g., USER → PREMIUM). Users can self-upgrade to PREMIUM. Admins can assign any role.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Role upgraded successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string' },
+        user: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            email: { type: 'string' },
+            role: { type: 'string' },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad Request - Invalid role or user already has that role',
+    type: ValidationErrorResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Insufficient permissions to upgrade to this role',
+    type: ErrorResponseDto,
+  })
+  async upgradeRole(
+    @Body() dto: UpgradeRoleDto,
+    @Req() req: Request,
+  ) {
+    const user = req.user as { sub: string; role: string };
+    return this.authService.upgradeRole(
+      user.sub,
+      dto.role,
+      { userId: user.sub, role: user.role as any },
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiBearerAuth()
+  @Post('admin/upgrade-role/:userId')
+  @ApiOperation({
+    summary: 'Admin: Upgrade any user role',
+    description: 'Administrators can upgrade or downgrade any user role',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User role updated successfully',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing JWT token',
+    type: ErrorResponseDto,
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Admin access required',
+    type: ErrorResponseDto,
+  })
+  async adminUpgradeRole(
+    @Param('userId') userId: string,
+    @Body() dto: UpgradeRoleDto,
+    @Req() req: Request,
+  ) {
+    const admin = req.user as { sub: string; role: string };
+    return this.authService.upgradeRole(
+      userId,
+      dto.role,
+      { userId: admin.sub, role: admin.role as any },
+    );
   }
 }

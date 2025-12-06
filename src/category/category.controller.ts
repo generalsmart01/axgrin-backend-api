@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { CategoryService } from './category.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ReadOnlyGuard } from '../auth/guards/read-only.guard';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import {
@@ -19,32 +20,30 @@ import {
   ApiTags,
   ApiOperation,
   ApiResponse,
+  ApiBody,
+  ApiCreatedResponse,
+  ApiOkResponse,
 } from '@nestjs/swagger';
 import {
   ErrorResponseDto,
   ValidationErrorResponseDto,
 } from '../common/dto/error-response.dto';
+import { CategoryResponseDto } from './dto/category-response.dto';
+import { MessageResponseDto } from '../common/dto/success-response.dto';
 
 @ApiTags('Category')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ReadOnlyGuard)
 @Controller('categories')
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new category' })
-  @ApiResponse({
-    status: 201,
+  @ApiBody({ type: CreateCategoryDto })
+  @ApiCreatedResponse({
     description: 'Category created successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        userId: { type: 'string' },
-        name: { type: 'string' },
-      },
-    },
+    type: CategoryResponseDto,
   })
   @ApiResponse({
     status: 400,
@@ -67,20 +66,9 @@ export class CategoryController {
 
   @Get()
   @ApiOperation({ summary: 'Get all categories for current user' })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Categories retrieved successfully',
-    schema: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          id: { type: 'string' },
-          userId: { type: 'string' },
-          name: { type: 'string' },
-        },
-      },
-    },
+    type: [CategoryResponseDto],
   })
   @ApiResponse({
     status: 401,
@@ -98,17 +86,9 @@ export class CategoryController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get category by ID' })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Category retrieved successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        userId: { type: 'string' },
-        name: { type: 'string' },
-      },
-    },
+    type: CategoryResponseDto,
   })
   @ApiResponse({
     status: 401,
@@ -131,17 +111,10 @@ export class CategoryController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update category by ID' })
-  @ApiResponse({
-    status: 200,
+  @ApiBody({ type: UpdateCategoryDto })
+  @ApiOkResponse({
     description: 'Category updated successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        userId: { type: 'string' },
-        name: { type: 'string' },
-      },
-    },
+    type: CategoryResponseDto,
   })
   @ApiResponse({
     status: 400,
@@ -169,15 +142,9 @@ export class CategoryController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete category by ID' })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Category deleted successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        message: { type: 'string', example: 'Category deleted successfully' },
-      },
-    },
+    type: MessageResponseDto,
   })
   @ApiResponse({
     status: 401,

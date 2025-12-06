@@ -8,7 +8,9 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    rawBody: true, // Enable raw body for Stripe webhooks
+  });
 
   // Enable CORS
   app.enableCors({
@@ -49,6 +51,17 @@ All endpoints require authentication. Include the JWT token in the Authorization
 Authorization: Bearer <your-jwt-token>
 \`\`\`
 
+## User Roles
+
+The API supports the following user roles:
+
+- **USER** (Default): Standard user with full access to personal finance features
+- **ADMIN**: System administrator with full system access
+- **PREMIUM**: Paid subscription tier with advanced features (unlimited AI, exports, advanced analytics)
+- **VIEWER**: Read-only access for data sharing (accountants, advisors, auditors)
+
+See \`ROLES_DOCUMENTATION.md\` for detailed role permissions and usage.
+
 ## Rate Limiting
 
 API requests are rate-limited to 100 requests per 15-minute window to prevent abuse.
@@ -83,6 +96,13 @@ API requests are rate-limited to 100 requests per 15-minute window to prevent ab
       .addTag('Settings', 'User preferences and settings')
       .addTag('Notifications', 'User notification management')
       .addTag('Income', 'Income tracking and management')
+      .addTag('Admin Dashboard', 'Admin dashboard statistics and management')
+      .addTag('Admin - Subscription Configuration', 'Admin subscription pricing and trial configuration')
+      .addTag('Admin - Subscription Analytics', 'Admin subscription metrics and analytics')
+      .addTag('Admin - Subscription Management', 'Admin subscription management and operations')
+      .addTag('Reports', 'Financial reports generation (Premium)')
+      .addTag('Activity Analytics', 'User activity tracking and analytics')
+      .addTag('Payment & Subscriptions', 'Premium subscription payment and management')
       .build();
 
     const document = SwaggerModule.createDocument(app, config);

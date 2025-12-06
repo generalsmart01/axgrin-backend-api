@@ -4,7 +4,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export class ChatResponseDto {
   @ApiProperty({
     description: 'The AI assistant response message',
-    example: 'Based on your spending this month, you\'re doing well overall! Here\'s the breakdown...',
+    example:
+      "Based on your spending this month, you're doing well overall! Here's the breakdown...",
     type: 'string',
   })
   response: string;
@@ -16,6 +17,7 @@ export class ChatResponseDto {
       spendingAnalysis: {
         type: 'object',
         description: 'Analysis of user spending patterns',
+        additionalProperties: true,
       },
       savingsOpportunities: {
         type: 'array',
@@ -37,7 +39,11 @@ export class ChatResponseDto {
     description: 'Suggested actions for the user to take',
     type: 'array',
     items: { type: 'string' },
-    example: ['Review your Transportation budget', 'Set up a savings goal', 'Track your progress weekly'],
+    example: [
+      'Review your Transportation budget',
+      'Set up a savings goal',
+      'Track your progress weekly',
+    ],
   })
   suggestedActions?: string[];
 
@@ -62,12 +68,14 @@ export class FinancialInsightsDto {
   @ApiProperty({
     description: 'Spending trends over time',
     type: 'object',
+    additionalProperties: true,
   })
   spendingTrends: any;
 
   @ApiProperty({
     description: 'Current budget status and performance',
     type: 'object',
+    additionalProperties: true,
   })
   budgetStatus: any;
 
@@ -92,4 +100,3 @@ export class FinancialInsightsDto {
   })
   lastUpdated: Date;
 }
-

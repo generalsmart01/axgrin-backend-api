@@ -19,6 +19,7 @@ import { CreateNewPasswordDto } from './dto/create-new-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Role } from '@prisma/client';
 import { NotificationService } from '../notification/notification.service';
+import { RoleUpgradeService } from './services/role-upgrade.service';
 
 @Injectable()
 export class AuthService {
@@ -27,6 +28,7 @@ export class AuthService {
     private jwt: JwtService,
     private mailerService: MailerService,
     private notificationService: NotificationService,
+    private roleUpgradeService: RoleUpgradeService,
   ) {}
 
   // Register Auth
@@ -364,5 +366,28 @@ export class AuthService {
     });
 
     return { message: 'Password updated successfully' };
+  }
+
+  /**
+   * Upgrade user role (e.g., USER → PREMIUM)
+   * Users can self-upgrade to PREMIUM, admins can assign any role
+   */
+  async upgradeRole(
+    userId: string,
+    targetRole: Role,
+    requestedBy?: { userId: string; role: Role },
+  ) {
+    return this.roleUpgradeService.upgradeUserRole(
+      userId,
+      targetRole,
+      requestedBy,
+    );
+  }
+
+  /**
+   * Check if user has premium access
+   */
+  async hasPremiumAccess(userId: string): Promise<boolean> {
+    return this.roleUpgradeService.hasPremiumAccess(userId);
   }
 }

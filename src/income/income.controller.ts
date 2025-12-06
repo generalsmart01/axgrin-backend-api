@@ -14,40 +14,37 @@ import { IncomeService } from './income.service';
 import { CreateIncomeDto } from './dto/create-income.dto';
 import { UpdateIncomeDto } from './dto/update-income.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ReadOnlyGuard } from '../auth/guards/read-only.guard';
 import {
   ApiBearerAuth,
   ApiTags,
   ApiOperation,
   ApiResponse,
+  ApiBody,
+  ApiCreatedResponse,
+  ApiOkResponse,
 } from '@nestjs/swagger';
 import {
   ErrorResponseDto,
   ValidationErrorResponseDto,
 } from '../common/dto/error-response.dto';
+import { IncomeResponseDto } from './dto/income-response.dto';
+import { MessageResponseDto } from '../common/dto/success-response.dto';
 import { Request } from 'express';
 
 @ApiTags('Income')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ReadOnlyGuard)
 @Controller('income')
 export class IncomeController {
   constructor(private readonly incomeService: IncomeService) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new income record' })
-  @ApiResponse({
-    status: 201,
+  @ApiBody({ type: CreateIncomeDto })
+  @ApiCreatedResponse({
     description: 'Income created successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        userId: { type: 'string' },
-        amount: { type: 'number' },
-        source: { type: 'string' },
-        date: { type: 'string', format: 'date-time' },
-      },
-    },
+    type: IncomeResponseDto,
   })
   @ApiResponse({
     status: 400,
@@ -71,22 +68,9 @@ export class IncomeController {
 
   @Get()
   @ApiOperation({ summary: 'Get all income records for current user' })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Income records retrieved successfully',
-    schema: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          id: { type: 'string' },
-          userId: { type: 'string' },
-          amount: { type: 'number' },
-          source: { type: 'string' },
-          date: { type: 'string', format: 'date-time' },
-        },
-      },
-    },
+    type: [IncomeResponseDto],
   })
   @ApiResponse({
     status: 401,
@@ -105,19 +89,9 @@ export class IncomeController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get income record by ID' })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Income record retrieved successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        userId: { type: 'string' },
-        amount: { type: 'number' },
-        source: { type: 'string' },
-        date: { type: 'string', format: 'date-time' },
-      },
-    },
+    type: IncomeResponseDto,
   })
   @ApiResponse({
     status: 401,
@@ -141,19 +115,10 @@ export class IncomeController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update income record by ID' })
-  @ApiResponse({
-    status: 200,
+  @ApiBody({ type: UpdateIncomeDto })
+  @ApiOkResponse({
     description: 'Income record updated successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        userId: { type: 'string' },
-        amount: { type: 'number' },
-        source: { type: 'string' },
-        date: { type: 'string', format: 'date-time' },
-      },
-    },
+    type: IncomeResponseDto,
   })
   @ApiResponse({
     status: 400,
@@ -186,15 +151,9 @@ export class IncomeController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete income record by ID' })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Income record deleted successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        message: { type: 'string', example: 'Income deleted successfully' },
-      },
-    },
+    type: MessageResponseDto,
   })
   @ApiResponse({
     status: 401,

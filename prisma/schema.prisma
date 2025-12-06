@@ -13,6 +13,9 @@ datasource db {
 enum Role {
   USER
   ADMIN
+  PREMIUM
+  VIEWER
+  CUSTOMER_CARE
 }
 
 enum Gender {
@@ -48,6 +51,8 @@ model User {
   settings      Settings?
 
   loginActivities LoginActivity[] @relation("UserLoginActivities")
+  activityLogs    ActivityLog[]   @relation("UserActivityLogs")
+  subscription    Subscription?
 
   @@map("users")
 }
@@ -143,4 +148,94 @@ model LoginActivity {
   timestamp DateTime
 
   user User @relation("UserLoginActivities", fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum ActivityType {
+  CREATE
+  UPDATE
+  DELETE
+  VIEW
+  LOGIN
+  LOGOUT
+  EXPORT
+  IMPORT
+  DOWNLOAD
+  UPLOAD
+}
+
+model ActivityLog {
+  id          String       @id @default(cuid())
+  userId      String
+  activityType ActivityType
+  entityType  String       // e.g., "Expense", "Income", "BudgetGoal", "Category"
+  entityId    String?
+  description String
+  ipAddress   String?
+  userAgent   String?
+  metadata    String?      // JSON string for additional data
+  createdAt   DateTime     @default(now())
+
+  user User @relation("UserActivityLogs", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([activityType])
+  @@index([entityType])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  UNPAID
+  TRIALING
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+}
+
+enum SubscriptionPlan {
+  MONTHLY
+  YEARLY
+}
+
+model Subscription {
+  id                    String              @id @default(cuid())
+  userId                String              @unique
+  stripeCustomerId      String?             @unique
+  stripeSubscriptionId  String?             @unique
+  stripePriceId         String?
+  plan                  SubscriptionPlan     @default(MONTHLY)
+  status                SubscriptionStatus  @default(ACTIVE)
+  currentPeriodStart    DateTime?
+  currentPeriodEnd      DateTime?
+  cancelAtPeriodEnd     Boolean             @default(false)
+  canceledAt            DateTime?
+  trialStart            DateTime?
+  trialEnd              DateTime?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([stripeCustomerId])
+  @@index([stripeSubscriptionId])
+  @@index([status])
+  @@map("subscriptions")
+}
+
+model SubscriptionConfig {
+  id                String   @id @default(cuid())
+  plan              SubscriptionPlan @unique
+  stripePriceId     String
+  price             Decimal   // Price in USD
+  currency          String    @default("USD")
+  trialDays         Int       @default(0)
+  isActive          Boolean   @default(true)
+  description       String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@map("subscription_configs")
 }

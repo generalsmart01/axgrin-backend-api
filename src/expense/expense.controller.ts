@@ -14,41 +14,37 @@ import { ExpenseService } from './expense.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ReadOnlyGuard } from '../auth/guards/read-only.guard';
 import { Request } from 'express';
 import {
   ApiBearerAuth,
   ApiTags,
   ApiOperation,
   ApiResponse,
+  ApiBody,
+  ApiCreatedResponse,
+  ApiOkResponse,
 } from '@nestjs/swagger';
 import {
   ErrorResponseDto,
   ValidationErrorResponseDto,
 } from '../common/dto/error-response.dto';
+import { ExpenseResponseDto } from './dto/expense-response.dto';
+import { MessageResponseDto } from '../common/dto/success-response.dto';
 
 @ApiTags('Expense')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ReadOnlyGuard)
 @Controller('expense')
 export class ExpenseController {
   constructor(private readonly expenseService: ExpenseService) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new expense record' })
-  @ApiResponse({
-    status: 201,
+  @ApiBody({ type: CreateExpenseDto })
+  @ApiCreatedResponse({
     description: 'Expense created successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        userId: { type: 'string' },
-        amount: { type: 'number' },
-        categoryId: { type: 'string' },
-        note: { type: 'string', nullable: true },
-        date: { type: 'string', format: 'date-time' },
-      },
-    },
+    type: ExpenseResponseDto,
   })
   @ApiResponse({
     status: 400,
@@ -72,23 +68,9 @@ export class ExpenseController {
 
   @Get()
   @ApiOperation({ summary: 'Get all expense records for current user' })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Expense records retrieved successfully',
-    schema: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          id: { type: 'string' },
-          userId: { type: 'string' },
-          amount: { type: 'number' },
-          categoryId: { type: 'string' },
-          note: { type: 'string', nullable: true },
-          date: { type: 'string', format: 'date-time' },
-        },
-      },
-    },
+    type: [ExpenseResponseDto],
   })
   @ApiResponse({
     status: 401,
@@ -107,20 +89,9 @@ export class ExpenseController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get expense record by ID' })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Expense record retrieved successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        userId: { type: 'string' },
-        amount: { type: 'number' },
-        categoryId: { type: 'string' },
-        note: { type: 'string', nullable: true },
-        date: { type: 'string', format: 'date-time' },
-      },
-    },
+    type: ExpenseResponseDto,
   })
   @ApiResponse({
     status: 401,
@@ -144,20 +115,10 @@ export class ExpenseController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update expense record by ID' })
-  @ApiResponse({
-    status: 200,
+  @ApiBody({ type: UpdateExpenseDto })
+  @ApiOkResponse({
     description: 'Expense record updated successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        userId: { type: 'string' },
-        amount: { type: 'number' },
-        categoryId: { type: 'string' },
-        note: { type: 'string', nullable: true },
-        date: { type: 'string', format: 'date-time' },
-      },
-    },
+    type: ExpenseResponseDto,
   })
   @ApiResponse({
     status: 400,
@@ -190,15 +151,9 @@ export class ExpenseController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete expense record by ID' })
-  @ApiResponse({
-    status: 200,
+  @ApiOkResponse({
     description: 'Expense record deleted successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        message: { type: 'string', example: 'Expense deleted successfully' },
-      },
-    },
+    type: MessageResponseDto,
   })
   @ApiResponse({
     status: 401,

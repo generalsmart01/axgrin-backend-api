@@ -352,7 +352,7 @@ export class RealAIService {
       actions.push(match[1].trim());
     }
 
-    return actions.length > 0 ? actions : undefined;
+    return actions.length > 0 ? actions : [];
   }
 
   private async getUserPreferences(userId: string): Promise<any> {

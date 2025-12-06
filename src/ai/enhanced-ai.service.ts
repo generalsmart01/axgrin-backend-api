@@ -11,6 +11,9 @@ export interface EnhancedAIResponse {
     spendingAnalysis?: any;
     savingsOpportunities?: any[];
     recommendations?: any[];
+    budgetStatus?: any;
+    uncategorizedExpenses?: any[];
+    currentGoals?: any[];
   };
   suggestedActions?: string[];
   conversationId?: string;
@@ -95,7 +98,7 @@ export class EnhancedAIService {
     // Use the original rule-based system as fallback
     const intent = this.analyzeIntent(message);
 
-    let financialContext = null;
+    let financialContext: any = null;
     if (context?.includeFinancialData) {
       financialContext =
         await this.financialContextService.getUserFinancialContext(userId);
@@ -337,7 +340,7 @@ export class EnhancedAIService {
   }
 
   private generateBudgetActions(budgetStatus: any): string[] {
-    const actions = [];
+    const actions: string[] = [];
 
     if (budgetStatus.overBudgetCategories.length > 0) {
       actions.push('Review overspending categories');
@@ -355,7 +358,7 @@ export class EnhancedAIService {
   }
 
   private generateSavingsActions(savingsOpportunities: any[]): string[] {
-    const actions = [];
+    const actions: string[] = [];
 
     if (savingsOpportunities.length > 0) {
       actions.push('Implement suggested savings strategies');
