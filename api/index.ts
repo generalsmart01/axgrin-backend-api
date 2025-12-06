@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../src/app.module';
 import { ExpressAdapter } from '@nestjs/platform-express';
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import express from 'express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AllExceptionsFilter } from '../src/common/filters/high-exception.filter';
@@ -18,17 +18,7 @@ async function createApp(): Promise<express.Express> {
 
   const expressApp = express();
   
-  // Configure body parsers directly on Express app
-  expressApp.use(express.json({ limit: '10mb' }));
-  expressApp.use(express.urlencoded({ extended: true, limit: '10mb' }));
-  
-  const adapter = new ExpressAdapter(expressApp);
-
-  const app = await NestFactory.create(AppModule, adapter, {
-    rawBody: true,
-  });
-
-  // Enable CORS
+  // Configure CORS at Express level first (before NestJS)
   const allowedOrigins = process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim())
     : [
@@ -39,8 +29,54 @@ async function createApp(): Promise<express.Express> {
         'https://axgrin.vercel.app',
       ];
 
+  // Handle preflight OPTIONS requests
+  expressApp.use((req: Request, res: Response, next: NextFunction) => {
+    const origin = req.headers.origin;
+    if (origin && allowedOrigins.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader(
+        'Access-Control-Allow-Methods',
+        'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+      );
+      res.setHeader(
+        'Access-Control-Allow-Headers',
+        'Content-Type, Authorization, Accept',
+      );
+      res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
+    }
+
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+      res.status(204).end();
+      return;
+    }
+
+    next();
+  });
+  
+  // Configure body parsers directly on Express app
+  expressApp.use(express.json({ limit: '10mb' }));
+  expressApp.use(express.urlencoded({ extended: true, limit: '10mb' }));
+  
+  const adapter = new ExpressAdapter(expressApp);
+
+  const app = await NestFactory.create(AppModule, adapter, {
+    rawBody: true,
+  });
+
+  // Enable CORS in NestJS as well (redundant but ensures coverage)
   app.enableCors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     credentials: true,
@@ -126,6 +162,36 @@ async function createApp(): Promise<express.Express> {
 }
 
 export default async function handler(req: Request, res: Response) {
+  // Set CORS headers before handling the request
+  const origin = req.headers.origin;
+  const allowedOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim())
+    : [
+        'http://localhost:3002',
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://localhost:3003',
+        'https://axgrin.vercel.app',
+      ];
+
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader(
+      'Access-Control-Allow-Methods',
+      'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+    );
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Content-Type, Authorization, Accept',
+    );
+  }
+
+  // Handle preflight requests immediately
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+
   const app = await createApp();
   app(req, res);
 }
