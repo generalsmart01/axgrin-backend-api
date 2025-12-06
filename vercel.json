@@ -11,7 +11,12 @@
   ],
   "functions": {
     "api/index.ts": {
-      "includeFiles": "dist/**"
+      "runtime": "nodejs20.x",
+      "includeFiles": [
+        "dist/**",
+        "node_modules/.prisma/**",
+        "prisma/schema.prisma"
+      ]
     }
   }
 }

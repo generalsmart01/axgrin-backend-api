@@ -13,78 +13,84 @@ let cachedApp: express.Express;
 
 async function createApp(): Promise<express.Express> {
   if (cachedApp) {
+    console.log('Using cached app');
     return cachedApp;
   }
 
-  const expressApp = express();
+  try {
+    console.log('Initializing NestJS app...');
+    console.log('NODE_ENV:', process.env.NODE_ENV);
+    console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
+    
+    const expressApp = express();
   
-  // Configure CORS at Express level first (before NestJS)
-  const allowedOrigins = process.env.CORS_ORIGINS
-    ? process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim())
-    : [
-        'http://localhost:3002',
-        'http://localhost:3000',
-        'http://localhost:3001',
-        'http://localhost:3003',
-        'https://axgrin.vercel.app',
-      ];
+    // Configure CORS at Express level first (before NestJS)
+    const allowedOrigins = process.env.CORS_ORIGINS
+      ? process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim())
+      : [
+          'http://localhost:3002',
+          'http://localhost:3000',
+          'http://localhost:3001',
+          'http://localhost:3003',
+          'https://axgrin.vercel.app',
+        ];
 
-  // Handle preflight OPTIONS requests
-  expressApp.use((req: Request, res: Response, next: NextFunction) => {
-    const origin = req.headers.origin;
-    if (origin && allowedOrigins.includes(origin)) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
-      res.setHeader(
-        'Access-Control-Allow-Methods',
-        'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-      );
-      res.setHeader(
-        'Access-Control-Allow-Headers',
-        'Content-Type, Authorization, Accept',
-      );
-      res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
-    }
-
-    // Handle preflight requests
-    if (req.method === 'OPTIONS') {
-      res.status(204).end();
-      return;
-    }
-
-    next();
-  });
-  
-  // Configure body parsers directly on Express app
-  expressApp.use(express.json({ limit: '10mb' }));
-  expressApp.use(express.urlencoded({ extended: true, limit: '10mb' }));
-  
-  const adapter = new ExpressAdapter(expressApp);
-
-  const app = await NestFactory.create(AppModule, adapter, {
-    rawBody: true,
-  });
-
-  // Enable CORS in NestJS as well (redundant but ensures coverage)
-  app.enableCors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-      
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
+    // Handle preflight OPTIONS requests
+    expressApp.use((req: Request, res: Response, next: NextFunction) => {
+      const origin = req.headers.origin;
+      if (origin && allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+        res.setHeader(
+          'Access-Control-Allow-Methods',
+          'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+        );
+        res.setHeader(
+          'Access-Control-Allow-Headers',
+          'Content-Type, Authorization, Accept',
+        );
+        res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
       }
-    },
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-    credentials: true,
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
-  });
 
-  if (process.env.NODE_ENV !== 'production') {
+      // Handle preflight requests
+      if (req.method === 'OPTIONS') {
+        res.status(204).end();
+        return;
+      }
+
+      next();
+    });
+    
+    // Configure body parsers directly on Express app
+    expressApp.use(express.json({ limit: '10mb' }));
+    expressApp.use(express.urlencoded({ extended: true, limit: '10mb' }));
+    
+    const adapter = new ExpressAdapter(expressApp);
+
+    const app = await NestFactory.create(AppModule, adapter, {
+      rawBody: true,
+    });
+
+    // Enable CORS in NestJS as well (redundant but ensures coverage)
+    app.enableCors({
+      origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+      credentials: true,
+      preflightContinue: false,
+      optionsSuccessStatus: 204,
+    });
+
+    // Enable Swagger in all environments (including production)
     const config = new DocumentBuilder()
       .setTitle('Axgrin API')
       .setDescription('Axgrin Backend API Documentation')
@@ -132,67 +138,98 @@ async function createApp(): Promise<express.Express> {
         tryItOutEnabled: true,
       },
     });
+
+    app.useGlobalFilters(new AllExceptionsFilter());
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
+    );
+    // Configure helmet to not interfere with CORS
+    app.use(
+      helmet({
+        crossOriginResourcePolicy: { policy: 'cross-origin' },
+        crossOriginEmbedderPolicy: false,
+      }),
+    );
+    app.use(
+      rateLimit({
+        windowMs: 15 * 60 * 1000,
+        max: 100,
+      }),
+    );
+
+    console.log('Initializing NestJS application...');
+    await app.init();
+    console.log('NestJS app initialized successfully');
+    cachedApp = expressApp;
+    return expressApp;
+  } catch (error) {
+    console.error('Error creating NestJS app:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+    throw error;
   }
-
-  app.useGlobalFilters(new AllExceptionsFilter());
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
-  // Configure helmet to not interfere with CORS
-  app.use(
-    helmet({
-      crossOriginResourcePolicy: { policy: 'cross-origin' },
-      crossOriginEmbedderPolicy: false,
-    }),
-  );
-  app.use(
-    rateLimit({
-      windowMs: 15 * 60 * 1000,
-      max: 100,
-    }),
-  );
-
-  await app.init();
-  cachedApp = expressApp;
-  return expressApp;
 }
 
 export default async function handler(req: Request, res: Response) {
-  // Set CORS headers before handling the request
-  const origin = req.headers.origin;
-  const allowedOrigins = process.env.CORS_ORIGINS
-    ? process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim())
-    : [
-        'http://localhost:3002',
-        'http://localhost:3000',
-        'http://localhost:3001',
-        'http://localhost:3003',
-        'https://axgrin.vercel.app',
-      ];
+  try {
+    // Set CORS headers before handling the request
+    const origin = req.headers.origin;
+    const allowedOrigins = process.env.CORS_ORIGINS
+      ? process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim())
+      : [
+          'http://localhost:3002',
+          'http://localhost:3000',
+          'http://localhost:3001',
+          'http://localhost:3003',
+          'https://axgrin.vercel.app',
+        ];
 
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader(
-      'Access-Control-Allow-Methods',
-      'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-    );
-    res.setHeader(
-      'Access-Control-Allow-Headers',
-      'Content-Type, Authorization, Accept',
-    );
+    if (origin && allowedOrigins.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader(
+        'Access-Control-Allow-Methods',
+        'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+      );
+      res.setHeader(
+        'Access-Control-Allow-Headers',
+        'Content-Type, Authorization, Accept',
+      );
+    }
+
+    // Handle preflight requests immediately
+    if (req.method === 'OPTIONS') {
+      return res.status(204).end();
+    }
+
+    const app = await createApp();
+    app(req, res);
+  } catch (error) {
+    console.error('Serverless function error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    // Set CORS headers even for errors
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+    
+    res.status(500).json({
+      statusCode: 500,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'production' 
+        ? 'An error occurred' 
+        : errorMessage,
+      ...(process.env.NODE_ENV !== 'production' && errorStack && { stack: errorStack }),
+    });
   }
-
-  // Handle preflight requests immediately
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end();
-  }
-
-  const app = await createApp();
-  app(req, res);
 }
 
