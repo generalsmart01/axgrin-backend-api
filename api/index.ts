@@ -1,3 +1,14 @@
+// Register module paths for runtime resolution
+import * as path from 'path';
+
+// Set up module aliases for runtime resolution (using require to avoid TS errors)
+// When compiled, api/index.ts becomes dist/api/index.js, so __dirname is dist/api
+// Therefore, dist/prisma is at path.join(__dirname, '..', 'prisma')
+const moduleAlias = require('module-alias');
+moduleAlias.addAliases({
+  'prisma': path.join(__dirname, '..', 'prisma'),
+});
+
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../src/app.module';
 import { ExpressAdapter } from '@nestjs/platform-express';
