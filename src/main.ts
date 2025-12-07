@@ -1,4 +1,13 @@
 // main.ts
+// Register module paths for runtime resolution (for Render/production)
+import * as path from 'path';
+const moduleAlias = require('module-alias');
+// When compiled, main.ts becomes dist/src/main.js, so __dirname is dist/src
+// Therefore, dist/prisma is at path.join(__dirname, '..', 'prisma')
+moduleAlias.addAliases({
+  'prisma': path.join(__dirname, '..', 'prisma'),
+});
+
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -154,8 +163,9 @@ API requests are rate-limited to 100 requests per 15-minute window to prevent ab
     }),
   );
 
-  await app.listen(3300);
-  console.log(`🚀 Server is running on: http://localhost:3300`);
-  console.log(`📚 API Documentation: http://localhost:3300/api/docs`);
+  const port = process.env.PORT || 3300;
+  await app.listen(port);
+  console.log(`🚀 Server is running on: http://localhost:${port}`);
+  console.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
 }
 bootstrap();

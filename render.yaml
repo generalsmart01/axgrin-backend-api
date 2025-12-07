@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: axgrin-backend
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: node dist/src/main.js
+    plan: starter
+    healthCheckPath: /api/docs
+    envVars:
+      - key: NODE_ENV
+        value: production
+
