@@ -1,14 +1,24 @@
 // main.ts
-// Register module paths for runtime resolution (for Render/production)
-import * as path from 'path';
-const moduleAlias = require('module-alias');
-// When compiled, main.ts becomes dist/src/main.js, so __dirname is dist/src
-// Therefore, dist/prisma is at path.join(__dirname, '..', 'prisma')
-// And dist/src is at __dirname
-moduleAlias.addAliases({
-  'prisma': path.join(__dirname, '..', 'prisma'),
-  'src': __dirname, // Map 'src' imports to dist/src
-});
+// Register module paths for runtime resolution (only needed in production/compiled code)
+// In development, tsconfig-paths/register handles this
+// Check if we're running compiled JS (not TS) by checking if __filename ends with .js
+const isCompiled = __filename.endsWith('.js') || process.env.NODE_ENV === 'production';
+if (isCompiled) {
+  try {
+    const moduleAlias = require('module-alias');
+    const path = require('path');
+    // When compiled, main.ts becomes dist/src/main.js, so __dirname is dist/src
+    // Therefore, dist/prisma is at path.join(__dirname, '..', 'prisma')
+    // And dist/src is at __dirname
+    moduleAlias.addAliases({
+      'prisma': path.join(__dirname, '..', 'prisma'),
+      'src': __dirname, // Map 'src' imports to dist/src
+    });
+  } catch (e) {
+    // module-alias not available, skip (shouldn't happen in production)
+    console.warn('module-alias not available, skipping alias setup');
+  }
+}
 
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
@@ -37,7 +47,8 @@ async function bootstrap() {
     credentials: true, // Allow cookies and authorization headers
   });
 
-  if (process.env.NODE_ENV !== 'production') {
+  // Enable Swagger in all environments (can be disabled via env var if needed)
+  if (process.env.DISABLE_SWAGGER !== 'true') {
     const config = new DocumentBuilder()
       .setTitle('Axgrin API')
       .setDescription(
