@@ -4,8 +4,10 @@ import * as path from 'path';
 const moduleAlias = require('module-alias');
 // When compiled, main.ts becomes dist/src/main.js, so __dirname is dist/src
 // Therefore, dist/prisma is at path.join(__dirname, '..', 'prisma')
+// And dist/src is at __dirname
 moduleAlias.addAliases({
   'prisma': path.join(__dirname, '..', 'prisma'),
+  'src': __dirname, // Map 'src' imports to dist/src
 });
 
 import { NestFactory } from '@nestjs/core';
