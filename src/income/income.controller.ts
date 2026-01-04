@@ -1,4 +1,3 @@
-// src/income/income.controller.ts
 import {
   Controller,
   Get,
@@ -9,167 +8,139 @@ import {
   Delete,
   UseGuards,
   Req,
+  Query,
+  ParseIntPipe,
+  DefaultValuePipe,
 } from '@nestjs/common';
 import { IncomeService } from './income.service';
 import { CreateIncomeDto } from './dto/create-income.dto';
 import { UpdateIncomeDto } from './dto/update-income.dto';
+import { IncomeResponseDto } from './dto/income-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ReadOnlyGuard } from '../auth/guards/read-only.guard';
 import {
   ApiBearerAuth,
   ApiTags,
   ApiOperation,
-  ApiResponse,
+  ApiQuery,
+  ApiParam,
   ApiBody,
-  ApiCreatedResponse,
-  ApiOkResponse,
 } from '@nestjs/swagger';
-import {
-  ErrorResponseDto,
-  ValidationErrorResponseDto,
-} from '../common/dto/error-response.dto';
-import { IncomeResponseDto } from './dto/income-response.dto';
-import { MessageResponseDto } from '../common/dto/success-response.dto';
 import { Request } from 'express';
+import {
+  ApiStandardResponses,
+  ApiPaginatedResponse,
+  ApiStandardErrorResponses,
+  ApiNotFoundResponse,
+  ApiSuccessResponse,
+} from '../common/decorators/api-responses.decorator';
+import { MessageResponseDto } from '../common/dto/success-response.dto';
 
 @ApiTags('Income')
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, ReadOnlyGuard)
 @Controller('income')
 export class IncomeController {
   constructor(private readonly incomeService: IncomeService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create a new income record' })
+  @ApiOperation({
+    summary: 'Create income record',
+    description: 'Create a new income record for the authenticated user',
+  })
   @ApiBody({ type: CreateIncomeDto })
-  @ApiCreatedResponse({
-    description: 'Income created successfully',
-    type: IncomeResponseDto,
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request - Validation failed',
-    type: ValidationErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
-  })
+  @ApiStandardResponses(IncomeResponseDto, 'Income created successfully', true)
   create(@Body() dto: CreateIncomeDto, @Req() req: Request) {
     const user = req.user as any;
     return this.incomeService.create(user.sub, dto);
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all income records for current user' })
-  @ApiOkResponse({
-    description: 'Income records retrieved successfully',
-    type: [IncomeResponseDto],
+  @ApiOperation({
+    summary: 'Get all income records',
+    description: 'Retrieve paginated list of income records for the authenticated user',
   })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-    type: ErrorResponseDto,
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (1-based)',
+    example: 1,
+    minimum: 1,
   })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page',
+    example: 20,
+    minimum: 1,
+    maximum: 100,
   })
-  findAll(@Req() req: Request) {
+  @ApiPaginatedResponse(IncomeResponseDto, 'Income records retrieved successfully')
+  @ApiStandardErrorResponses()
+  findAll(
+    @Req() req: Request,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number = 20,
+  ) {
     const user = req.user as any;
-    return this.incomeService.findAll(user.sub);
+    return this.incomeService.findAll(user.sub, page, Math.min(limit, 100));
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get income record by ID' })
-  @ApiOkResponse({
-    description: 'Income record retrieved successfully',
-    type: IncomeResponseDto,
+  @ApiOperation({
+    summary: 'Get income by ID',
+    description: 'Retrieve a specific income record by its ID',
   })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-    type: ErrorResponseDto,
+  @ApiParam({
+    name: 'id',
+    description: 'Income ID',
+    example: 'clx1234567890abcdef',
+    type: String,
   })
-  @ApiResponse({
-    status: 404,
-    description: 'Income record not found',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
-  })
+  @ApiSuccessResponse(IncomeResponseDto, 'Income retrieved successfully')
+  @ApiNotFoundResponse('Income not found')
+  @ApiStandardErrorResponses()
   findOne(@Param('id') id: string, @Req() req: Request) {
     const user = req.user as any;
     return this.incomeService.findOne(user.sub, id);
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update income record by ID' })
+  @ApiOperation({
+    summary: 'Update income',
+    description: 'Update an existing income record',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Income ID',
+    example: 'clx1234567890abcdef',
+    type: String,
+  })
   @ApiBody({ type: UpdateIncomeDto })
-  @ApiOkResponse({
-    description: 'Income record updated successfully',
-    type: IncomeResponseDto,
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request - Validation failed',
-    type: ValidationErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Income record not found',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
-  })
-  update(
-    @Param('id') id: string,
-    @Body() dto: UpdateIncomeDto,
-    @Req() req: Request,
-  ) {
+  @ApiSuccessResponse(IncomeResponseDto, 'Income updated successfully')
+  @ApiNotFoundResponse('Income not found')
+  @ApiStandardErrorResponses()
+  update(@Param('id') id: string, @Body() dto: UpdateIncomeDto, @Req() req: Request) {
     const user = req.user as any;
     return this.incomeService.update(user.sub, id, dto);
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete income record by ID' })
-  @ApiOkResponse({
-    description: 'Income record deleted successfully',
-    type: MessageResponseDto,
+  @ApiOperation({
+    summary: 'Delete income',
+    description: 'Delete an income record',
   })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-    type: ErrorResponseDto,
+  @ApiParam({
+    name: 'id',
+    description: 'Income ID',
+    example: 'clx1234567890abcdef',
+    type: String,
   })
-  @ApiResponse({
-    status: 404,
-    description: 'Income record not found',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
-  })
+  @ApiSuccessResponse(MessageResponseDto, 'Income deleted successfully')
+  @ApiNotFoundResponse('Income not found')
+  @ApiStandardErrorResponses()
   remove(@Param('id') id: string, @Req() req: Request) {
     const user = req.user as any;
     return this.incomeService.remove(user.sub, id);

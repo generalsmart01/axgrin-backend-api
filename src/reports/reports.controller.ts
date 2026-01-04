@@ -1,4 +1,3 @@
-// src/reports/reports.controller.ts
 import { Controller, Post, Body, UseGuards, Req, Get, Param } from '@nestjs/common';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -8,29 +7,35 @@ import {
   ApiTags,
   ApiBearerAuth,
   ApiOperation,
+  ApiParam,
+  ApiBody,
   ApiCreatedResponse,
   ApiOkResponse,
-  ApiResponse,
-  ApiParam,
 } from '@nestjs/swagger';
 import { ReportsService } from './reports.service';
 import { GenerateReportDto } from './dto/generate-report.dto';
-import { ErrorResponseDto, ValidationErrorResponseDto } from '../common/dto/error-response.dto';
+import {
+  ApiStandardResponses,
+  ApiStandardErrorResponses,
+  ApiSuccessResponse,
+  ApiForbiddenResponse,
+} from '../common/decorators/api-responses.decorator';
 
 @ApiTags('Reports')
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, PremiumGuard)
 @Controller('reports')
 export class ReportsController {
-  constructor(private readonly reportsService: ReportsService) {}
+  constructor(private readonly reportsService: ReportsService) { }
 
   @Post('generate')
   @Premium()
   @ApiOperation({
-    summary: 'Generate a financial report (Premium)',
+    summary: 'Generate financial report',
     description:
       'Generate various types of financial reports in different formats (PDF, Excel, CSV, JSON). Premium feature.',
   })
+  @ApiBody({ type: GenerateReportDto })
   @ApiCreatedResponse({
     description: 'Report generated successfully',
     schema: {
@@ -47,25 +52,13 @@ export class ReportsController {
         format: {
           type: 'string',
           example: 'PDF',
+          enum: ['PDF', 'EXCEL', 'CSV', 'JSON'],
         },
       },
     },
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request - Invalid report type or parameters',
-    type: ValidationErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Premium subscription required',
-    type: ErrorResponseDto,
-  })
+  @ApiForbiddenResponse('Forbidden - Premium subscription required')
+  @ApiStandardErrorResponses()
   async generateReport(
     @Body() dto: GenerateReportDto,
     @Req() req: Request,
@@ -82,14 +75,21 @@ export class ReportsController {
   @ApiParam({
     name: 'filename',
     description: 'Report filename',
-    type: 'string',
     example: 'financial-summary-1234567890.pdf',
+    type: String,
   })
   @ApiOkResponse({
     description: 'Report file download',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string' },
+        filename: { type: 'string' },
+      },
+    },
   })
+  @ApiStandardErrorResponses()
   async downloadReport(@Param('filename') filename: string) {
-    // In a real implementation, this would serve the actual file
     return {
       message: 'Report download endpoint',
       filename,
@@ -97,4 +97,3 @@ export class ReportsController {
     };
   }
 }
-

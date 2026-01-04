@@ -1,4 +1,3 @@
-// src/payment/payment.controller.ts
 import {
   Controller,
   Post,
@@ -13,17 +12,23 @@ import {
   ApiTags,
   ApiBearerAuth,
   ApiOperation,
-  ApiCreatedResponse,
+  ApiBody,
   ApiOkResponse,
-  ApiResponse,
 } from '@nestjs/swagger';
 import { PaymentService } from './payment.service';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
-import { ErrorResponseDto, ValidationErrorResponseDto } from '../common/dto/error-response.dto';
+import { SubscriptionStatusDto } from './dto/subscription-status.dto';
+import { CheckoutResponseDto } from './dto/checkout-response.dto';
+import {
+  ApiStandardResponses,
+  ApiStandardErrorResponses,
+  ApiSuccessResponse,
+  ApiNotFoundResponse,
+} from '../common/decorators/api-responses.decorator';
 import { MessageResponseDto } from '../common/dto/success-response.dto';
 
 @ApiTags('Payment & Subscriptions')
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard)
 @Controller('payment')
 export class PaymentController {
@@ -31,36 +36,12 @@ export class PaymentController {
 
   @Post('checkout')
   @ApiOperation({
-    summary: 'Create checkout session for premium subscription',
-    description:
-      'Create a Stripe checkout session to subscribe to premium. Returns a URL to redirect the user to Stripe payment page.',
+    summary: 'Create checkout session',
+    description: 'Create a Stripe checkout session to subscribe to premium. Returns a URL to redirect the user to Stripe payment page. Trial periods are applied automatically based on subscription configuration.',
   })
-  @ApiCreatedResponse({
-    description: 'Checkout session created successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        sessionId: {
-          type: 'string',
-          example: 'cs_test_...',
-        },
-        url: {
-          type: 'string',
-          example: 'https://checkout.stripe.com/pay/cs_test_...',
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request - Invalid plan or user already has active subscription',
-    type: ValidationErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-    type: ErrorResponseDto,
-  })
+  @ApiBody({ type: CreateCheckoutDto })
+  @ApiStandardResponses(CheckoutResponseDto, 'Checkout session created successfully', true)
+  @ApiStandardErrorResponses()
   async createCheckout(
     @Body() dto: CreateCheckoutDto,
     @Req() req: Request,
@@ -71,33 +52,14 @@ export class PaymentController {
 
   @Get('subscription/status')
   @ApiOperation({
-    summary: 'Get my subscription status',
-    description: 'Get current subscription status and premium access information',
+    summary: 'Get subscription status',
+    description: 'Get current subscription status and premium access information for the authenticated user',
   })
   @ApiOkResponse({
     description: 'Subscription status retrieved successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        hasSubscription: { type: 'boolean' },
-        isPremium: { type: 'boolean' },
-        isActive: { type: 'boolean' },
-        subscription: {
-          type: 'object',
-          nullable: true,
-          properties: {
-            id: { type: 'string' },
-            plan: { type: 'string', enum: ['MONTHLY', 'YEARLY'] },
-            status: { type: 'string' },
-            currentPeriodStart: { type: 'string', format: 'date-time' },
-            currentPeriodEnd: { type: 'string', format: 'date-time' },
-            cancelAtPeriodEnd: { type: 'boolean' },
-            trialEnd: { type: 'string', format: 'date-time', nullable: true },
-          },
-        },
-      },
-    },
+    type: SubscriptionStatusDto,
   })
+  @ApiStandardErrorResponses()
   async getSubscriptionStatus(@Req() req: Request) {
     const user = req.user as { sub: string };
     return this.paymentService.getSubscriptionStatus(user.sub);
@@ -106,18 +68,11 @@ export class PaymentController {
   @Post('subscription/cancel')
   @ApiOperation({
     summary: 'Cancel subscription',
-    description:
-      'Cancel premium subscription. Subscription will remain active until the end of the current billing period.',
+    description: 'Cancel the current subscription. The subscription will remain active until the end of the current billing period, then the user will be downgraded to USER role.',
   })
-  @ApiOkResponse({
-    description: 'Subscription cancellation scheduled',
-    type: MessageResponseDto,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Active subscription not found',
-    type: ErrorResponseDto,
-  })
+  @ApiSuccessResponse(MessageResponseDto, 'Subscription cancellation scheduled successfully')
+  @ApiNotFoundResponse('Active subscription not found')
+  @ApiStandardErrorResponses()
   async cancelSubscription(@Req() req: Request) {
     const user = req.user as { sub: string };
     return this.paymentService.cancelSubscription(user.sub);
@@ -125,19 +80,12 @@ export class PaymentController {
 
   @Post('subscription/reactivate')
   @ApiOperation({
-    summary: 'Reactivate canceled subscription',
-    description:
-      'Reactivate a subscription that was scheduled for cancellation',
+    summary: 'Reactivate subscription',
+    description: 'Reactivate a canceled subscription before the current period ends',
   })
-  @ApiOkResponse({
-    description: 'Subscription reactivated successfully',
-    type: MessageResponseDto,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Subscription not found',
-    type: ErrorResponseDto,
-  })
+  @ApiSuccessResponse(MessageResponseDto, 'Subscription reactivated successfully')
+  @ApiNotFoundResponse('Subscription not found')
+  @ApiStandardErrorResponses()
   async reactivateSubscription(@Req() req: Request) {
     const user = req.user as { sub: string };
     return this.paymentService.reactivateSubscription(user.sub);
@@ -145,9 +93,8 @@ export class PaymentController {
 
   @Post('customer-portal')
   @ApiOperation({
-    summary: 'Get Stripe customer portal URL',
-    description:
-      'Get a URL to access Stripe customer portal where users can manage their subscription, payment methods, and billing history',
+    summary: 'Get customer portal URL',
+    description: 'Get a Stripe customer portal URL where users can manage their subscription, update payment methods, and view billing history',
   })
   @ApiOkResponse({
     description: 'Customer portal URL generated successfully',
@@ -157,15 +104,12 @@ export class PaymentController {
         url: {
           type: 'string',
           example: 'https://billing.stripe.com/p/session_...',
+          description: 'Stripe customer portal URL',
         },
       },
     },
   })
-  @ApiResponse({
-    status: 404,
-    description: 'Subscription not found',
-    type: ErrorResponseDto,
-  })
+  @ApiStandardErrorResponses()
   async getCustomerPortal(@Req() req: Request) {
     const user = req.user as { sub: string };
     return this.paymentService.getCustomerPortalUrl(user.sub);

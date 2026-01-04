@@ -1,4 +1,3 @@
-// src/admin/subscription-config.controller.ts
 import {
   Controller,
   Get,
@@ -15,8 +14,8 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiOkResponse,
-  ApiCreatedResponse,
-  ApiResponse,
+  ApiParam,
+  ApiBody,
 } from '@nestjs/swagger';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -28,11 +27,17 @@ import {
   UpdateSubscriptionConfigDto,
   SubscriptionConfigResponseDto,
 } from './dto/subscription-config.dto';
-import { ErrorResponseDto, ValidationErrorResponseDto } from '../common/dto/error-response.dto';
 import { MessageResponseDto } from '../common/dto/success-response.dto';
+import {
+  ApiStandardResponses,
+  ApiStandardErrorResponses,
+  ApiSuccessResponse,
+  ApiNotFoundResponse,
+  ApiForbiddenResponse,
+} from '../common/decorators/api-responses.decorator';
 
 @ApiTags('Admin - Subscription Configuration')
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')
 @Controller('admin/subscription-config')
@@ -44,20 +49,10 @@ export class SubscriptionConfigController {
     summary: 'Create or update subscription configuration',
     description: 'Create or update subscription pricing and trial configuration for a plan',
   })
-  @ApiCreatedResponse({
-    description: 'Subscription configuration created/updated successfully',
-    type: SubscriptionConfigResponseDto,
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request - Invalid input data',
-    type: ValidationErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Admin access required',
-    type: ErrorResponseDto,
-  })
+  @ApiBody({ type: CreateSubscriptionConfigDto })
+  @ApiStandardResponses(SubscriptionConfigResponseDto, 'Subscription configuration created/updated successfully', true)
+  @ApiForbiddenResponse('Forbidden - Admin access required')
+  @ApiStandardErrorResponses()
   async upsertConfig(@Body() dto: CreateSubscriptionConfigDto) {
     return this.subscriptionConfigService.upsertConfig(dto);
   }
@@ -71,6 +66,8 @@ export class SubscriptionConfigController {
     description: 'Subscription configurations retrieved successfully',
     type: [SubscriptionConfigResponseDto],
   })
+  @ApiForbiddenResponse('Forbidden - Admin access required')
+  @ApiStandardErrorResponses()
   async getAllConfigs() {
     return this.subscriptionConfigService.getAllConfigs();
   }
@@ -80,15 +77,16 @@ export class SubscriptionConfigController {
     summary: 'Get subscription configuration by plan',
     description: 'Retrieve subscription pricing and trial configuration for a specific plan',
   })
-  @ApiOkResponse({
-    description: 'Subscription configuration retrieved successfully',
-    type: SubscriptionConfigResponseDto,
+  @ApiParam({
+    name: 'plan',
+    description: 'Subscription plan',
+    enum: SubscriptionPlan,
+    example: SubscriptionPlan.MONTHLY,
   })
-  @ApiResponse({
-    status: 404,
-    description: 'Configuration not found',
-    type: ErrorResponseDto,
-  })
+  @ApiSuccessResponse(SubscriptionConfigResponseDto, 'Subscription configuration retrieved successfully')
+  @ApiNotFoundResponse('Configuration not found')
+  @ApiForbiddenResponse('Forbidden - Admin access required')
+  @ApiStandardErrorResponses()
   async getConfigByPlan(
     @Param('plan', new ParseEnumPipe(SubscriptionPlan)) plan: SubscriptionPlan,
   ) {
@@ -100,20 +98,17 @@ export class SubscriptionConfigController {
     summary: 'Update subscription configuration',
     description: 'Update subscription pricing, trial days, or other configuration for a plan',
   })
-  @ApiOkResponse({
-    description: 'Subscription configuration updated successfully',
-    type: SubscriptionConfigResponseDto,
+  @ApiParam({
+    name: 'plan',
+    description: 'Subscription plan',
+    enum: SubscriptionPlan,
+    example: SubscriptionPlan.MONTHLY,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request - Invalid input data',
-    type: ValidationErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Configuration not found',
-    type: ErrorResponseDto,
-  })
+  @ApiBody({ type: UpdateSubscriptionConfigDto })
+  @ApiSuccessResponse(SubscriptionConfigResponseDto, 'Subscription configuration updated successfully')
+  @ApiNotFoundResponse('Configuration not found')
+  @ApiForbiddenResponse('Forbidden - Admin access required')
+  @ApiStandardErrorResponses()
   async updateConfig(
     @Param('plan', new ParseEnumPipe(SubscriptionPlan)) plan: SubscriptionPlan,
     @Body() dto: UpdateSubscriptionConfigDto,
@@ -126,19 +121,19 @@ export class SubscriptionConfigController {
     summary: 'Delete subscription configuration',
     description: 'Delete subscription configuration for a plan',
   })
-  @ApiOkResponse({
-    description: 'Subscription configuration deleted successfully',
-    type: MessageResponseDto,
+  @ApiParam({
+    name: 'plan',
+    description: 'Subscription plan',
+    enum: SubscriptionPlan,
+    example: SubscriptionPlan.MONTHLY,
   })
-  @ApiResponse({
-    status: 404,
-    description: 'Configuration not found',
-    type: ErrorResponseDto,
-  })
+  @ApiSuccessResponse(MessageResponseDto, 'Subscription configuration deleted successfully')
+  @ApiNotFoundResponse('Configuration not found')
+  @ApiForbiddenResponse('Forbidden - Admin access required')
+  @ApiStandardErrorResponses()
   async deleteConfig(
     @Param('plan', new ParseEnumPipe(SubscriptionPlan)) plan: SubscriptionPlan,
   ) {
     return this.subscriptionConfigService.deleteConfig(plan);
   }
 }
-

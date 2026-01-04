@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Support Ticket Update</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+    <h2 style="color: #2196F3; margin-top: 0;">Support Ticket Update</h2>
+    <p>Hi {{firstName}},</p>
+    <p>Your support ticket has been updated:</p>
+    <div style="background-color: white; padding: 15px; border-radius: 5px; margin: 20px 0;">
+      <p style="margin: 5px 0;"><strong>Ticket ID:</strong> #{{ticketId}}</p>
+      <p style="margin: 5px 0;"><strong>Title:</strong> {{ticketTitle}}</p>
+      <p style="margin: 5px 0;"><strong>Status:</strong> {{ticketStatus}}</p>
+      {{#if assignedStaff}}
+      <p style="margin: 5px 0;"><strong>Assigned To:</strong> {{assignedStaff}}</p>
+      {{/if}}
+      {{#if message}}
+      <p style="margin: 10px 0 0 0;"><strong>Update:</strong></p>
+      <p style="margin: 5px 0;">{{message}}</p>
+      {{/if}}
+    </div>
+    <div style="margin: 30px 0; text-align: center;">
+      <a href="{{ticketUrl}}" style="background-color: #2196F3; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">View Ticket</a>
+    </div>
+    <p>Best regards,<br>The Axgrin Support Team</p>
+  </div>
+</body>
+</html>
+

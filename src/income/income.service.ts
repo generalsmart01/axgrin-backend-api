@@ -21,11 +21,31 @@ export class IncomeService {
     });
   }
 
-  async findAll(userId: string) {
-    return this.prisma.income.findMany({
-      where: { userId },
-      orderBy: { date: 'desc' },
-    });
+  async findAll(userId: string, page: number = 1, limit: number = 20) {
+    const skip = (page - 1) * limit;
+    const take = Math.min(limit, 100); // Max 100 items per page
+
+    const [data, total] = await Promise.all([
+      this.prisma.income.findMany({
+        where: { userId },
+        orderBy: { date: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.income.count({ where: { userId } }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        page,
+        limit: take,
+        total,
+        totalPages: Math.ceil(total / take),
+        hasNextPage: page * take < total,
+        hasPreviousPage: page > 1,
+      },
+    };
   }
 
   async findOne(userId: string, id: string) {

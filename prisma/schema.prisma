@@ -53,6 +53,8 @@ model User {
   loginActivities LoginActivity[] @relation("UserLoginActivities")
   activityLogs    ActivityLog[]   @relation("UserActivityLogs")
   subscription    Subscription?
+  tickets        SupportTicket[]  @relation("UserTickets")
+  assignedTickets SupportTicket[] @relation("AssignedStaffTickets")
 
   @@map("users")
 }
@@ -74,6 +76,10 @@ model Income {
   date   DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([date])
+  @@index([userId, date])
 }
 
 model Expense {
@@ -86,6 +92,11 @@ model Expense {
 
   user     User     @relation(fields: [userId], references: [id])
   category Category @relation(fields: [categoryId], references: [id])
+
+  @@index([userId])
+  @@index([categoryId])
+  @@index([date])
+  @@index([userId, date])
 }
 
 model BudgetGoal {
@@ -238,4 +249,54 @@ model SubscriptionConfig {
   updatedAt         DateTime  @updatedAt
 
   @@map("subscription_configs")
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  PENDING
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketCategory {
+  TECHNICAL
+  BILLING
+  ACCOUNT
+  FEATURE_REQUEST
+  BUG_REPORT
+  GENERAL
+}
+
+model SupportTicket {
+  id          String         @id @default(cuid())
+  userId      String
+  assignedTo  String?
+  title       String
+  description String
+  category    TicketCategory @default(GENERAL)
+  status      TicketStatus   @default(OPEN)
+  priority    TicketPriority @default(MEDIUM)
+  metadata    String?        // JSON string for additional data
+  resolvedAt  DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  user        User  @relation("UserTickets", fields: [userId], references: [id], onDelete: Cascade)
+  assignedStaff User? @relation("AssignedStaffTickets", fields: [assignedTo], references: [id])
+
+  @@index([userId])
+  @@index([assignedTo])
+  @@index([status])
+  @@index([category])
+  @@index([priority])
+  @@index([createdAt])
+  @@map("support_tickets")
 }

@@ -1,4 +1,3 @@
-// src/notification/notification.controller.ts
 import {
   Controller,
   Post,
@@ -20,15 +19,19 @@ import {
   ApiBearerAuth,
   ApiTags,
   ApiOperation,
-  ApiResponse,
   ApiParam,
-  ApiCreatedResponse,
-  ApiOkResponse,
+  ApiBody,
 } from '@nestjs/swagger';
 import { Request } from 'express';
+import {
+  ApiStandardResponses,
+  ApiStandardErrorResponses,
+  ApiNotFoundResponse,
+  ApiSuccessResponse,
+} from '../common/decorators/api-responses.decorator';
 
 @ApiTags('Notifications')
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard)
 @Controller('notifications')
 export class NotificationController {
@@ -36,22 +39,12 @@ export class NotificationController {
 
   @Post()
   @ApiOperation({
-    summary: 'Create a new notification',
-    description:
-      'Creates a new notification for the authenticated user. Typically used by the system to send alerts about budget goals, expense limits, etc.',
+    summary: 'Create notification',
+    description: 'Create a new notification for the authenticated user. Typically used by the system for alerts.',
   })
-  @ApiCreatedResponse({
-    description: 'Notification created successfully',
-    type: NotificationResponseDto,
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request - Invalid input data',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-  })
+  @ApiBody({ type: CreateNotificationDto })
+  @ApiStandardResponses(NotificationResponseDto, 'Notification created successfully', true)
+  @ApiStandardErrorResponses()
   create(@Body() dto: CreateNotificationDto, @Req() req: Request) {
     const user = req.user as any;
     return this.notificationService.create(user.sub, dto);
@@ -60,17 +53,10 @@ export class NotificationController {
   @Get()
   @ApiOperation({
     summary: 'Get all notifications',
-    description:
-      'Retrieves all notifications for the authenticated user, including read and unread notifications with metadata.',
+    description: 'Retrieve all notifications for the authenticated user, including read and unread status.',
   })
-  @ApiOkResponse({
-    description: 'Notifications retrieved successfully',
-    type: NotificationListResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-  })
+  @ApiSuccessResponse(NotificationListResponseDto, 'Notifications retrieved successfully')
+  @ApiStandardErrorResponses()
   findAll(@Req() req: Request) {
     const user = req.user as any;
     return this.notificationService.findAll(user.sub);
@@ -79,27 +65,17 @@ export class NotificationController {
   @Patch(':id/read')
   @ApiOperation({
     summary: 'Mark notification as read',
-    description:
-      'Marks a specific notification as read for the authenticated user.',
+    description: 'Mark a specific notification as read for the authenticated user.',
   })
   @ApiParam({
     name: 'id',
-    description: 'Notification ID to mark as read',
+    description: 'Notification ID',
     example: 'clx1234567890abcdef',
-    type: 'string',
+    type: String,
   })
-  @ApiOkResponse({
-    description: 'Notification marked as read successfully',
-    type: NotificationResponseDto,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Notification not found',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-  })
+  @ApiSuccessResponse(NotificationResponseDto, 'Notification marked as read successfully')
+  @ApiNotFoundResponse('Notification not found')
+  @ApiStandardErrorResponses()
   markAsRead(@Param('id') id: string, @Req() req: Request) {
     const user = req.user as any;
     return this.notificationService.markAsRead(id, user.sub);

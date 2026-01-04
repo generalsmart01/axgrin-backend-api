@@ -1,4 +1,3 @@
-// src/analytics/activity-analytics.controller.ts
 import {
   Controller,
   Get,
@@ -15,17 +14,20 @@ import {
   ApiTags,
   ApiBearerAuth,
   ApiOperation,
-  ApiOkResponse,
-  ApiResponse,
   ApiQuery,
   ApiParam,
 } from '@nestjs/swagger';
 import { ActivityTrackingService } from './activity-tracking.service';
-import { ErrorResponseDto } from '../common/dto/error-response.dto';
 import { ActivityType } from '@prisma/client';
+import {
+  ApiStandardErrorResponses,
+  ApiSuccessResponse,
+  ApiForbiddenResponse,
+} from '../common/decorators/api-responses.decorator';
+import { ApiOkResponse } from '@nestjs/swagger';
 
 @ApiTags('Activity Analytics')
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard)
 @Controller('analytics/activities')
 export class ActivityAnalyticsController {
@@ -36,7 +38,7 @@ export class ActivityAnalyticsController {
   @Get('my-activities')
   @ApiOperation({
     summary: 'Get my activity logs',
-    description: 'Get activity logs for the authenticated user',
+    description: 'Get activity logs for the authenticated user with optional filtering by date, type, and entity',
   })
   @ApiQuery({
     name: 'startDate',
@@ -80,7 +82,14 @@ export class ActivityAnalyticsController {
   })
   @ApiOkResponse({
     description: 'Activity logs retrieved successfully',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+      },
+    },
   })
+  @ApiStandardErrorResponses()
   async getMyActivities(
     @Req() req: Request,
     @Query('startDate') startDate?: string,
@@ -112,16 +121,22 @@ export class ActivityAnalyticsController {
     required: false,
     type: 'string',
     description: 'Start date (ISO 8601 format)',
+    example: '2024-01-01T00:00:00.000Z',
   })
   @ApiQuery({
     name: 'endDate',
     required: false,
     type: 'string',
     description: 'End date (ISO 8601 format)',
+    example: '2024-12-31T23:59:59.000Z',
   })
   @ApiOkResponse({
     description: 'Activity statistics retrieved successfully',
+    schema: {
+      type: 'object',
+    },
   })
+  @ApiStandardErrorResponses()
   async getActivityStatistics(
     @Req() req: Request,
     @Query('startDate') startDate?: string,
@@ -140,8 +155,8 @@ export class ActivityAnalyticsController {
   @UseGuards(RolesGuard)
   @Roles('ADMIN', 'CUSTOMER_CARE')
   @ApiOperation({
-    summary: 'Get most active users (Admin/Customer Care only)',
-    description: 'Get list of most active users based on activity count',
+    summary: 'Get most active users',
+    description: 'Get list of most active users based on activity count. Available to Admin and Customer Care only.',
   })
   @ApiQuery({
     name: 'limit',
@@ -155,21 +170,26 @@ export class ActivityAnalyticsController {
     required: false,
     type: 'string',
     description: 'Start date (ISO 8601 format)',
+    example: '2024-01-01T00:00:00.000Z',
   })
   @ApiQuery({
     name: 'endDate',
     required: false,
     type: 'string',
     description: 'End date (ISO 8601 format)',
+    example: '2024-12-31T23:59:59.000Z',
   })
   @ApiOkResponse({
     description: 'Most active users retrieved successfully',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+      },
+    },
   })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Admin or Customer Care access required',
-    type: ErrorResponseDto,
-  })
+  @ApiForbiddenResponse('Forbidden - Admin or Customer Care access required')
+  @ApiStandardErrorResponses()
   async getMostActiveUsers(
     @Query('limit') limit?: string,
     @Query('startDate') startDate?: string,
@@ -186,27 +206,40 @@ export class ActivityAnalyticsController {
   @UseGuards(RolesGuard)
   @Roles('ADMIN', 'CUSTOMER_CARE')
   @ApiOperation({
-    summary: 'Get activity logs for a specific user (Admin/Customer Care only)',
-    description: 'View activity logs for any user',
+    summary: 'Get user activity logs',
+    description: 'View activity logs for any user. Available to Admin and Customer Care only.',
   })
   @ApiParam({
     name: 'userId',
     description: 'User ID to get activities for',
-    type: 'string',
+    example: 'clx1234567890abcdef',
+    type: String,
   })
   @ApiQuery({
     name: 'startDate',
     required: false,
     type: 'string',
+    description: 'Start date (ISO 8601 format)',
+    example: '2024-01-01T00:00:00.000Z',
   })
   @ApiQuery({
     name: 'endDate',
     required: false,
     type: 'string',
+    description: 'End date (ISO 8601 format)',
+    example: '2024-12-31T23:59:59.000Z',
   })
   @ApiOkResponse({
     description: 'User activity logs retrieved successfully',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+      },
+    },
   })
+  @ApiForbiddenResponse('Forbidden - Admin or Customer Care access required')
+  @ApiStandardErrorResponses()
   async getUserActivities(
     @Param('userId') userId: string,
     @Query('startDate') startDate?: string,
@@ -218,4 +251,3 @@ export class ActivityAnalyticsController {
     });
   }
 }
-

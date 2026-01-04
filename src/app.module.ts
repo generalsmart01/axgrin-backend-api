@@ -21,6 +21,9 @@ import { AIModule } from './ai/ai.module';
 import { AdminModule } from './admin/admin.module';
 import { ReportsModule } from './reports/reports.module';
 import { PaymentModule } from './payment/payment.module';
+import { SupportTicketModule } from './support-ticket/support-ticket.module';
+import { CacheModule } from './cache/cache.module';
+import { SecurityModule } from './security/security.module';
 
 @Module({
   imports: [
@@ -39,6 +42,9 @@ import { PaymentModule } from './payment/payment.module';
     AdminModule,
     ReportsModule,
     PaymentModule,
+    SupportTicketModule,
+    CacheModule,
+    SecurityModule,
     MailerModule.forRoot({
       transport: {
         host: 'smtp.gmail.com',

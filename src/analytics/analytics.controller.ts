@@ -16,7 +16,6 @@ import {
   ApiTags,
   ApiBearerAuth,
   ApiOperation,
-  ApiResponse,
   ApiQuery,
 } from '@nestjs/swagger';
 import {
@@ -28,212 +27,110 @@ import {
   AdminAnalyticsDto,
 } from './dto/analytics-response.dto';
 import {
-  ErrorResponseDto,
-  ValidationErrorResponseDto,
-} from '../common/dto/error-response.dto';
+  ApiStandardErrorResponses,
+  ApiSuccessResponse,
+  ApiForbiddenResponse,
+} from '../common/decorators/api-responses.decorator';
+import { ApiOkResponse } from '@nestjs/swagger';
 
 @ApiTags('Analytics')
+@ApiBearerAuth('JWT-auth')
 @Controller('analytics')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 
   @Get('dashboard')
-  @Roles('ADMIN', 'USER')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get comprehensive dashboard analytics' })
-  @ApiResponse({
-    status: 200,
-    description: 'Dashboard analytics retrieved successfully',
-    type: DashboardAnalyticsDto,
+  @Roles('ADMIN', 'USER', 'PREMIUM')
+  @ApiOperation({
+    summary: 'Get dashboard analytics',
+    description: 'Get comprehensive dashboard analytics including spending, income, budgets, and trends. Responses are cached for 10 minutes.',
   })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Insufficient permissions',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'User not found',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
-  })
+  @ApiSuccessResponse(DashboardAnalyticsDto, 'Dashboard analytics retrieved successfully')
+  @ApiForbiddenResponse('Forbidden - Premium feature (USER role limited)')
+  @ApiStandardErrorResponses()
   async getDashboardAnalytics(@Req() req: Request) {
     const user = req.user as { sub: string; role: string };
     return this.analyticsService.getDashboardAnalytics(user.sub, user.role);
   }
 
   @Get('user')
-  @Roles('ADMIN', 'USER')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get user-specific analytics' })
-  @ApiResponse({
-    status: 200,
-    description: 'User analytics retrieved successfully',
-    type: UserAnalyticsDto,
+  @Roles('ADMIN', 'USER', 'PREMIUM')
+  @ApiOperation({
+    summary: 'Get user analytics',
+    description: 'Get user-specific analytics including spending patterns and financial health metrics',
   })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Insufficient permissions',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'User not found',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
-  })
+  @ApiSuccessResponse(UserAnalyticsDto, 'User analytics retrieved successfully')
+  @ApiForbiddenResponse('Forbidden - Premium feature (USER role limited)')
+  @ApiStandardErrorResponses()
   async getUserAnalytics(@Req() req: Request) {
-    const user = req.user as { sub: string };
+    const user = req.user as { sub: string; role: string };
     return this.analyticsService.getUserAnalytics(user.sub);
   }
 
   @Get('monthly')
-  @Roles('ADMIN', 'USER')
-  @ApiBearerAuth()
+  @Roles('ADMIN', 'USER', 'PREMIUM')
   @ApiOperation({
-    summary: 'Get monthly analytics for the specified number of months',
+    summary: 'Get monthly analytics',
+    description: 'Get monthly analytics for the last N months with detailed breakdowns',
   })
   @ApiQuery({
     name: 'months',
-    description: 'Number of months to retrieve (default: 6)',
     required: false,
-    type: 'number',
+    type: Number,
+    description: 'Number of months to retrieve (defaults to 6)',
     example: 6,
+    minimum: 1,
+    maximum: 24,
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Monthly analytics retrieved successfully',
-    type: [MonthlyAnalyticsDto],
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request - Invalid months parameter',
-    type: ValidationErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Insufficient permissions',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
-  })
+  @ApiSuccessResponse(MonthlyAnalyticsDto, 'Monthly analytics retrieved successfully')
+  @ApiForbiddenResponse('Forbidden - Premium feature (USER role limited)')
+  @ApiStandardErrorResponses()
   async getMonthlyAnalytics(
     @Req() req: Request,
-    @Query('months', new DefaultValuePipe(6), ParseIntPipe) months: number,
+    @Query('months', new DefaultValuePipe(6), ParseIntPipe) months?: number,
   ) {
-    const user = req.user as { sub: string };
-    return this.analyticsService.getMonthlyAnalytics(user.sub, months);
+    const user = req.user as { sub: string; role: string };
+    return this.analyticsService.getMonthlyAnalytics(user.sub, months || 6);
   }
 
-  @Get('categories')
-  @Roles('ADMIN', 'USER')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get category breakdown analytics' })
-  @ApiResponse({
-    status: 200,
-    description: 'Category analytics retrieved successfully',
-    type: [CategoryAnalyticsDto],
+  @Get('category')
+  @Roles('ADMIN', 'USER', 'PREMIUM')
+  @ApiOperation({
+    summary: 'Get category analytics',
+    description: 'Get analytics broken down by expense categories',
   })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Insufficient permissions',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
-  })
+  @ApiSuccessResponse(CategoryAnalyticsDto, 'Category analytics retrieved successfully')
+  @ApiForbiddenResponse('Forbidden - Premium feature (USER role limited)')
+  @ApiStandardErrorResponses()
   async getCategoryAnalytics(@Req() req: Request) {
-    const user = req.user as { sub: string };
+    const user = req.user as { sub: string; role: string };
     return this.analyticsService.getCategoryAnalytics(user.sub);
   }
 
-  @Get('budget-goals')
-  @Roles('ADMIN', 'USER')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get budget goals progress analytics' })
-  @ApiResponse({
-    status: 200,
-    description: 'Budget goals analytics retrieved successfully',
-    type: [BudgetGoalAnalyticsDto],
+  @Get('budget')
+  @Roles('ADMIN', 'USER', 'PREMIUM')
+  @ApiOperation({
+    summary: 'Get budget goal analytics',
+    description: 'Get analytics for all budget goals including progress and performance',
   })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Insufficient permissions',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
-  })
-  async getBudgetGoalsAnalytics(@Req() req: Request) {
-    const user = req.user as { sub: string };
+  @ApiSuccessResponse(BudgetGoalAnalyticsDto, 'Budget goal analytics retrieved successfully')
+  @ApiForbiddenResponse('Forbidden - Premium feature (USER role limited)')
+  @ApiStandardErrorResponses()
+  async getBudgetGoalAnalytics(@Req() req: Request) {
+    const user = req.user as { sub: string; role: string };
     return this.analyticsService.getBudgetGoalsAnalytics(user.sub);
   }
 
   @Get('admin')
   @Roles('ADMIN')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get admin analytics (ADMIN only)' })
-  @ApiResponse({
-    status: 200,
-    description: 'Admin analytics retrieved successfully',
-    type: AdminAnalyticsDto,
+  @ApiOperation({
+    summary: 'Get admin analytics',
+    description: 'Get system-wide analytics. Available only to Admins.',
   })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Admin access required',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
-  })
+  @ApiSuccessResponse(AdminAnalyticsDto, 'Admin analytics retrieved successfully')
+  @ApiForbiddenResponse('Forbidden - Admin access required')
+  @ApiStandardErrorResponses()
   async getAdminAnalytics() {
     return this.analyticsService.getAdminAnalytics();
   }

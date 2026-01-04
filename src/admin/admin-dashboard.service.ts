@@ -267,11 +267,31 @@ export class AdminDashboardService {
 
     const activeCustomerCareStaff = activeCustomerCareStaffIds.length;
 
-    // Support tickets (placeholder - implement when ticket system is added)
-    const totalSupportTickets = 0;
-    const openSupportTickets = 0;
-    const resolvedSupportTickets = 0;
-    const averageResponseTime = 0;
+    // Support tickets statistics
+    const ticketStats = await this.prisma.supportTicket.groupBy({
+      by: ['status'],
+      _count: true,
+    });
+
+    const totalSupportTickets = await this.prisma.supportTicket.count();
+    const openSupportTickets = ticketStats.find(s => s.status === 'OPEN')?._count || 0;
+    const resolvedSupportTickets = ticketStats.find(s => s.status === 'RESOLVED')?._count || 0;
+
+    // Calculate average response time (time from OPEN to RESOLVED)
+    const resolvedTickets = await this.prisma.supportTicket.findMany({
+      where: { status: 'RESOLVED', resolvedAt: { not: null } },
+      select: { createdAt: true, resolvedAt: true },
+    });
+
+    let totalResponseTime = 0;
+    for (const ticket of resolvedTickets) {
+      if (ticket.resolvedAt) {
+        totalResponseTime += ticket.resolvedAt.getTime() - ticket.createdAt.getTime();
+      }
+    }
+    const averageResponseTime = resolvedTickets.length > 0
+      ? Math.round(totalResponseTime / resolvedTickets.length / (1000 * 60)) // in minutes
+      : 0;
 
     // Customer care activity this week
     const thisWeek = new Date();

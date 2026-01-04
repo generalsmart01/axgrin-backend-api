@@ -1,4 +1,3 @@
-// src/ai/ai-premium.controller.ts
 import {
   Controller,
   Post,
@@ -15,24 +14,27 @@ import {
   ApiBearerAuth,
   ApiTags,
   ApiOperation,
+  ApiBody,
   ApiOkResponse,
-  ApiResponse,
 } from '@nestjs/swagger';
-import { ErrorResponseDto } from '../common/dto/error-response.dto';
+import {
+  ApiStandardErrorResponses,
+  ApiForbiddenResponse,
+} from '../common/decorators/api-responses.decorator';
 
 /**
  * Premium AI Features Controller
  * These endpoints are only accessible to PREMIUM and ADMIN users
  */
 @ApiTags('AI Premium Features')
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, PremiumGuard)
 @Controller('ai/premium')
 export class AIPremiumController {
   @Post('export-chat-history')
   @Premium()
   @ApiOperation({
-    summary: 'Export chat history to PDF (Premium)',
+    summary: 'Export chat history to PDF',
     description: 'Export your AI chat history to PDF format. Premium feature.',
   })
   @ApiOkResponse({
@@ -40,19 +42,19 @@ export class AIPremiumController {
     schema: {
       type: 'object',
       properties: {
-        downloadUrl: { type: 'string' },
-        filename: { type: 'string' },
+        message: { type: 'string', example: 'Chat history export (Premium feature)' },
+        downloadUrl: {
+          type: 'string',
+          example: '/exports/chat-history-1234567890.pdf',
+        },
+        filename: { type: 'string', example: 'chat-history-1234567890.pdf' },
       },
     },
   })
-  @ApiResponse({
-    status: 403,
-    description: 'Premium subscription required',
-    type: ErrorResponseDto,
-  })
+  @ApiForbiddenResponse('Forbidden - Premium subscription required')
+  @ApiStandardErrorResponses()
   async exportChatHistory(@Req() req: Request) {
     const user = req.user as any;
-    // Implementation would export chat history to PDF
     return {
       message: 'Chat history export (Premium feature)',
       downloadUrl: `/exports/chat-history-${user.sub}.pdf`,
@@ -63,21 +65,31 @@ export class AIPremiumController {
   @Get('advanced-insights')
   @Premium()
   @ApiOperation({
-    summary: 'Get advanced financial insights (Premium)',
+    summary: 'Get advanced financial insights',
     description:
       'Get advanced AI-powered financial insights with detailed analysis. Premium feature.',
   })
   @ApiOkResponse({
     description: 'Advanced insights retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string' },
+        insights: {
+          type: 'object',
+          properties: {
+            predictiveAnalysis: { type: 'string' },
+            investmentRecommendations: { type: 'string' },
+            taxOptimization: { type: 'string' },
+          },
+        },
+      },
+    },
   })
-  @ApiResponse({
-    status: 403,
-    description: 'Premium subscription required',
-    type: ErrorResponseDto,
-  })
+  @ApiForbiddenResponse('Forbidden - Premium subscription required')
+  @ApiStandardErrorResponses()
   async getAdvancedInsights(@Req() req: Request) {
     const user = req.user as any;
-    // Implementation would provide advanced insights
     return {
       message: 'Advanced financial insights (Premium feature)',
       insights: {
@@ -91,25 +103,36 @@ export class AIPremiumController {
   @Post('unlimited-chat')
   @Premium()
   @ApiOperation({
-    summary: 'Unlimited AI chat (Premium)',
+    summary: 'Unlimited AI chat',
     description:
       'Unlimited AI chat queries without rate limits. Premium feature.',
   })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'What are my spending trends?' },
+      },
+      required: ['message'],
+    },
+  })
   @ApiOkResponse({
     description: 'AI response generated successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string' },
+        response: { type: 'string' },
+      },
+    },
   })
-  @ApiResponse({
-    status: 403,
-    description: 'Premium subscription required',
-    type: ErrorResponseDto,
-  })
+  @ApiForbiddenResponse('Forbidden - Premium subscription required')
+  @ApiStandardErrorResponses()
   async unlimitedChat(@Body() body: { message: string }, @Req() req: Request) {
     const user = req.user as any;
-    // Implementation would process unlimited chat
     return {
       message: 'Unlimited AI chat (Premium feature)',
       response: 'AI response here...',
     };
   }
 }
-

@@ -138,6 +138,7 @@ API requests are rate-limited to 100 requests per 15-minute window to prevent ab
         'Payment & Subscriptions',
         'Premium subscription payment and management',
       )
+      .addTag('Support Tickets', 'Support ticket management system')
       .build();
 
     const document = SwaggerModule.createDocument(app, config);

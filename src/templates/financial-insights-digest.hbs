@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Weekly Financial Insights</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+    <h2 style="color: #2196F3; margin-top: 0;">Your Weekly Financial Insights</h2>
+    <p>Hi {{firstName}},</p>
+    <p>Here's your financial summary for the past week:</p>
+    
+    <div style="background-color: white; padding: 15px; border-radius: 5px; margin: 20px 0;">
+      <h3 style="margin-top: 0;">💰 Income & Expenses</h3>
+      <p style="margin: 5px 0;"><strong>Total Income:</strong> {{totalIncome}}</p>
+      <p style="margin: 5px 0;"><strong>Total Expenses:</strong> {{totalExpenses}}</p>
+      <p style="margin: 5px 0;"><strong>Net Balance:</strong> {{netBalance}}</p>
+    </div>
+
+    {{#if topCategories.length}}
+    <div style="background-color: white; padding: 15px; border-radius: 5px; margin: 20px 0;">
+      <h3 style="margin-top: 0;">📊 Top Spending Categories</h3>
+      <ul>
+        {{#each topCategories}}
+        <li><strong>{{this.name}}:</strong> {{this.amount}} ({{this.percentage}}%)</li>
+        {{/each}}
+      </ul>
+    </div>
+    {{/if}}
+
+    {{#if budgetAlerts.length}}
+    <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #ffc107;">
+      <h3 style="margin-top: 0;">⚠️ Budget Alerts</h3>
+      <ul>
+        {{#each budgetAlerts}}
+        <li>{{this.category}}: {{this.status}} ({{this.percentage}}% used)</li>
+        {{/each}}
+      </ul>
+    </div>
+    {{/if}}
+
+    {{#if insights.length}}
+    <div style="background-color: white; padding: 15px; border-radius: 5px; margin: 20px 0;">
+      <h3 style="margin-top: 0;">💡 Insights & Recommendations</h3>
+      <ul>
+        {{#each insights}}
+        <li>{{this}}</li>
+        {{/each}}
+      </ul>
+    </div>
+    {{/if}}
+
+    <div style="margin: 30px 0; text-align: center;">
+      <a href="{{dashboardUrl}}" style="background-color: #2196F3; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">View Full Dashboard</a>
+    </div>
+    <p>Best regards,<br>The Axgrin Team</p>
+  </div>
+</body>
+</html>
+

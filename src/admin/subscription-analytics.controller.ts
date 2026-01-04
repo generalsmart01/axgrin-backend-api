@@ -1,4 +1,3 @@
-// src/admin/subscription-analytics.controller.ts
 import {
   Controller,
   Get,
@@ -14,7 +13,6 @@ import {
   ApiOperation,
   ApiOkResponse,
   ApiQuery,
-  ApiResponse,
 } from '@nestjs/swagger';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -26,10 +24,14 @@ import {
   SubscriptionTrendDto,
   SubscriptionDetailsDto,
 } from './dto/subscription-analytics.dto';
-import { ErrorResponseDto } from '../common/dto/error-response.dto';
+import {
+  ApiStandardErrorResponses,
+  ApiSuccessResponse,
+  ApiForbiddenResponse,
+} from '../common/decorators/api-responses.decorator';
 
 @ApiTags('Admin - Subscription Analytics')
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')
 @Controller('admin/subscription-analytics')
@@ -44,15 +46,9 @@ export class SubscriptionAnalyticsController {
     description:
       'Retrieve overall subscription metrics including counts, revenue estimates, and breakdowns by plan and status',
   })
-  @ApiOkResponse({
-    description: 'Subscription analytics retrieved successfully',
-    type: SubscriptionAnalyticsDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Admin access required',
-    type: ErrorResponseDto,
-  })
+  @ApiSuccessResponse(SubscriptionAnalyticsDto, 'Subscription analytics retrieved successfully')
+  @ApiForbiddenResponse('Forbidden - Admin access required')
+  @ApiStandardErrorResponses()
   async getAnalytics(): Promise<SubscriptionAnalyticsDto> {
     return this.subscriptionAnalyticsService.getSubscriptionAnalytics();
   }
@@ -74,10 +70,12 @@ export class SubscriptionAnalyticsController {
     description: 'Subscription trends retrieved successfully',
     type: [SubscriptionTrendDto],
   })
+  @ApiForbiddenResponse('Forbidden - Admin access required')
+  @ApiStandardErrorResponses()
   async getTrends(
     @Query('days', new DefaultValuePipe(30), ParseIntPipe) days: number,
   ): Promise<SubscriptionTrendDto[]> {
-    const validDays = Math.min(Math.max(days, 1), 365); // Clamp between 1 and 365
+    const validDays = Math.min(Math.max(days, 1), 365);
     return this.subscriptionAnalyticsService.getSubscriptionTrends(validDays);
   }
 
@@ -122,17 +120,19 @@ export class SubscriptionAnalyticsController {
           type: 'array',
           items: { $ref: '#/components/schemas/SubscriptionDetailsDto' },
         },
-        total: { type: 'number' },
+        total: { type: 'number', example: 150 },
       },
     },
   })
+  @ApiForbiddenResponse('Forbidden - Admin access required')
+  @ApiStandardErrorResponses()
   async getDetails(
     @Query('status') status?: SubscriptionStatus,
-    @Query('plan') plan?: SubscriptionPlan,
+    @Query('plan', new ParseEnumPipe(SubscriptionPlan, { optional: true })) plan?: SubscriptionPlan,
     @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit?: number,
     @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset?: number,
   ): Promise<{ subscriptions: SubscriptionDetailsDto[]; total: number }> {
-    const validLimit = Math.min(Math.max(limit || 50, 1), 100); // Clamp between 1 and 100
+    const validLimit = Math.min(Math.max(limit || 50, 1), 100);
     return this.subscriptionAnalyticsService.getSubscriptionDetails(
       status,
       plan,
@@ -141,4 +141,3 @@ export class SubscriptionAnalyticsController {
     );
   }
 }
-

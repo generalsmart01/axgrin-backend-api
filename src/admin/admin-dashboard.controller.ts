@@ -1,4 +1,3 @@
-// src/admin/admin-dashboard.controller.ts
 import { Controller, Get, UseGuards, Req } from '@nestjs/common';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -9,14 +8,17 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiOkResponse,
-  ApiResponse,
 } from '@nestjs/swagger';
 import { AdminDashboardService } from './admin-dashboard.service';
 import { AdminDashboardDto } from './dto/admin-dashboard.dto';
-import { ErrorResponseDto } from '../common/dto/error-response.dto';
+import {
+  ApiStandardErrorResponses,
+  ApiSuccessResponse,
+  ApiForbiddenResponse,
+} from '../common/decorators/api-responses.decorator';
 
 @ApiTags('Admin Dashboard')
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')
 @Controller('admin/dashboard')
@@ -31,25 +33,9 @@ export class AdminDashboardController {
     description:
       'Get comprehensive dashboard statistics including main page stats, user statistics, and customer care statistics. Admin only.',
   })
-  @ApiOkResponse({
-    description: 'Dashboard statistics retrieved successfully',
-    type: AdminDashboardDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Admin access required',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
-  })
+  @ApiSuccessResponse(AdminDashboardDto, 'Dashboard statistics retrieved successfully')
+  @ApiForbiddenResponse('Forbidden - Admin access required')
+  @ApiStandardErrorResponses()
   async getAdminDashboard(@Req() req: Request): Promise<AdminDashboardDto> {
     return this.adminDashboardService.getAdminDashboard();
   }
@@ -62,6 +48,8 @@ export class AdminDashboardController {
   @ApiOkResponse({
     description: 'Main page statistics retrieved successfully',
   })
+  @ApiForbiddenResponse('Forbidden - Admin access required')
+  @ApiStandardErrorResponses()
   async getMainPageStatistics(@Req() req: Request) {
     const dashboard = await this.adminDashboardService.getAdminDashboard();
     return dashboard.mainPage;
@@ -75,6 +63,8 @@ export class AdminDashboardController {
   @ApiOkResponse({
     description: 'User statistics retrieved successfully',
   })
+  @ApiForbiddenResponse('Forbidden - Admin access required')
+  @ApiStandardErrorResponses()
   async getUserStatistics(@Req() req: Request) {
     const dashboard = await this.adminDashboardService.getAdminDashboard();
     return dashboard.users;
@@ -88,9 +78,10 @@ export class AdminDashboardController {
   @ApiOkResponse({
     description: 'Customer care statistics retrieved successfully',
   })
+  @ApiForbiddenResponse('Forbidden - Admin access required')
+  @ApiStandardErrorResponses()
   async getCustomerCareStatistics(@Req() req: Request) {
     const dashboard = await this.adminDashboardService.getAdminDashboard();
     return dashboard.customerCare;
   }
 }
-

@@ -1,15 +1,12 @@
-// src/admin/subscription-management.controller.ts
 import {
   Controller,
   Get,
   Put,
   Post,
-  Delete,
   Param,
   Body,
   Query,
   UseGuards,
-  ParseEnumPipe,
   ParseIntPipe,
 } from '@nestjs/common';
 import {
@@ -17,25 +14,29 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiOkResponse,
-  ApiResponse,
   ApiParam,
   ApiQuery,
+  ApiBody,
 } from '@nestjs/swagger';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { SubscriptionPlan } from '@prisma/client';
 import { SubscriptionManagementService } from './subscription-management.service';
 import {
   AdminUpdateSubscriptionDto,
   AdminCancelSubscriptionDto,
   AdminReactivateSubscriptionDto,
 } from './dto/manage-subscription.dto';
-import { ErrorResponseDto, ValidationErrorResponseDto } from '../common/dto/error-response.dto';
 import { MessageResponseDto } from '../common/dto/success-response.dto';
+import {
+  ApiStandardErrorResponses,
+  ApiSuccessResponse,
+  ApiNotFoundResponse,
+  ApiForbiddenResponse,
+} from '../common/decorators/api-responses.decorator';
 
 @ApiTags('Admin - Subscription Management')
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')
 @Controller('admin/subscriptions')
@@ -52,15 +53,18 @@ export class SubscriptionManagementController {
   @ApiParam({
     name: 'userId',
     description: 'User ID',
+    example: 'clx1234567890abcdef',
+    type: String,
   })
   @ApiOkResponse({
     description: 'Subscription retrieved successfully',
+    schema: {
+      type: 'object',
+    },
   })
-  @ApiResponse({
-    status: 404,
-    description: 'Subscription not found',
-    type: ErrorResponseDto,
-  })
+  @ApiNotFoundResponse('Subscription not found')
+  @ApiForbiddenResponse('Forbidden - Admin access required')
+  @ApiStandardErrorResponses()
   async getSubscriptionByUserId(@Param('userId') userId: string) {
     return this.subscriptionManagementService.getUserSubscription(userId);
   }
@@ -73,15 +77,18 @@ export class SubscriptionManagementController {
   @ApiParam({
     name: 'subscriptionId',
     description: 'Subscription ID',
+    example: 'clx1234567890abcdef',
+    type: String,
   })
   @ApiOkResponse({
     description: 'Subscription retrieved successfully',
+    schema: {
+      type: 'object',
+    },
   })
-  @ApiResponse({
-    status: 404,
-    description: 'Subscription not found',
-    type: ErrorResponseDto,
-  })
+  @ApiNotFoundResponse('Subscription not found')
+  @ApiForbiddenResponse('Forbidden - Admin access required')
+  @ApiStandardErrorResponses()
   async getSubscriptionById(@Param('subscriptionId') subscriptionId: string) {
     return this.subscriptionManagementService.getSubscriptionById(subscriptionId);
   }
@@ -94,20 +101,17 @@ export class SubscriptionManagementController {
   @ApiParam({
     name: 'subscriptionId',
     description: 'Subscription ID',
+    example: 'clx1234567890abcdef',
+    type: String,
   })
+  @ApiBody({ type: AdminUpdateSubscriptionDto })
   @ApiOkResponse({
     description: 'Subscription updated successfully',
+    schema: { type: 'object' },
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request - Invalid input or operation',
-    type: ValidationErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Subscription not found',
-    type: ErrorResponseDto,
-  })
+  @ApiNotFoundResponse('Subscription not found')
+  @ApiForbiddenResponse('Forbidden - Admin access required')
+  @ApiStandardErrorResponses()
   async updateSubscription(
     @Param('subscriptionId') subscriptionId: string,
     @Body() dto: AdminUpdateSubscriptionDto,
@@ -127,16 +131,14 @@ export class SubscriptionManagementController {
   @ApiParam({
     name: 'subscriptionId',
     description: 'Subscription ID',
+    example: 'clx1234567890abcdef',
+    type: String,
   })
-  @ApiOkResponse({
-    description: 'Subscription canceled successfully',
-    type: MessageResponseDto,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Subscription not found',
-    type: ErrorResponseDto,
-  })
+  @ApiBody({ type: AdminCancelSubscriptionDto })
+  @ApiSuccessResponse(MessageResponseDto, 'Subscription canceled successfully')
+  @ApiNotFoundResponse('Subscription not found')
+  @ApiForbiddenResponse('Forbidden - Admin access required')
+  @ApiStandardErrorResponses()
   async cancelSubscription(
     @Param('subscriptionId') subscriptionId: string,
     @Body() dto: AdminCancelSubscriptionDto,
@@ -155,20 +157,17 @@ export class SubscriptionManagementController {
   @ApiParam({
     name: 'subscriptionId',
     description: 'Subscription ID',
+    example: 'clx1234567890abcdef',
+    type: String,
   })
+  @ApiBody({ type: AdminReactivateSubscriptionDto })
   @ApiOkResponse({
     description: 'Subscription reactivated successfully',
+    schema: { type: 'object' },
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Subscription is already active',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Subscription not found',
-    type: ErrorResponseDto,
-  })
+  @ApiNotFoundResponse('Subscription not found')
+  @ApiForbiddenResponse('Forbidden - Admin access required')
+  @ApiStandardErrorResponses()
   async reactivateSubscription(
     @Param('subscriptionId') subscriptionId: string,
     @Body() dto: AdminReactivateSubscriptionDto,
@@ -187,26 +186,23 @@ export class SubscriptionManagementController {
   @ApiParam({
     name: 'subscriptionId',
     description: 'Subscription ID',
+    example: 'clx1234567890abcdef',
+    type: String,
   })
   @ApiQuery({
     name: 'days',
     type: Number,
     description: 'Number of additional trial days (1-365)',
     example: 7,
+    required: true,
   })
   @ApiOkResponse({
     description: 'Trial period extended successfully',
+    schema: { type: 'object' },
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Invalid number of days or subscription has no trial',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Subscription not found',
-    type: ErrorResponseDto,
-  })
+  @ApiNotFoundResponse('Subscription not found')
+  @ApiForbiddenResponse('Forbidden - Admin access required')
+  @ApiStandardErrorResponses()
   async extendTrial(
     @Param('subscriptionId') subscriptionId: string,
     @Query('days', ParseIntPipe) days: number,
@@ -214,4 +210,3 @@ export class SubscriptionManagementController {
     return this.subscriptionManagementService.extendTrial(subscriptionId, days);
   }
 }
-

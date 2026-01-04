@@ -5,7 +5,6 @@ import {
   Body,
   UseGuards,
   Req,
-  ForbiddenException,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { ProfileService } from './profile.service';
@@ -18,87 +17,47 @@ import {
   ApiTags,
   ApiBearerAuth,
   ApiOperation,
-  ApiResponse,
+  ApiBody,
 } from '@nestjs/swagger';
 import {
-  ErrorResponseDto,
-  ValidationErrorResponseDto,
-} from '../common/dto/error-response.dto';
+  ApiStandardResponses,
+  ApiStandardErrorResponses,
+  ApiSuccessResponse,
+  ApiForbiddenResponse,
+} from '../common/decorators/api-responses.decorator';
+import { ApiOkResponse } from '@nestjs/swagger';
 
 @ApiTags('Profile')
+@ApiBearerAuth('JWT-auth')
 @Controller('profile')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
 
   @Get('me')
-  @Roles('ADMIN', 'USER')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get current user profile' })
-  @ApiResponse({
-    status: 200,
-    description: 'Profile retrieved successfully',
-    type: ProfileResponseDto,
+  @Roles('ADMIN', 'USER', 'PREMIUM', 'VIEWER')
+  @ApiOperation({
+    summary: 'Get current user profile',
+    description: 'Retrieve the authenticated user\'s profile with complete information including statistics',
   })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Insufficient permissions',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'User not found',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
-  })
+  @ApiSuccessResponse(ProfileResponseDto, 'Profile retrieved successfully')
+  @ApiForbiddenResponse('Forbidden - Insufficient permissions')
+  @ApiStandardErrorResponses()
   async getMyProfile(@Req() req: Request): Promise<ProfileResponseDto> {
     const user = req.user as { sub: string };
     return this.profileService.getProfile(user.sub);
   }
 
   @Patch('me')
-  @Roles('ADMIN', 'USER')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update current user profile' })
-  @ApiResponse({
-    status: 200,
-    description: 'Profile updated successfully',
-    type: ProfileResponseDto,
+  @Roles('ADMIN', 'USER', 'PREMIUM')
+  @ApiOperation({
+    summary: 'Update current user profile',
+    description: 'Update the authenticated user\'s profile information',
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request - Validation failed',
-    type: ValidationErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Insufficient permissions',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'User not found',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
-  })
+  @ApiBody({ type: UpdateProfileDto })
+  @ApiStandardResponses(ProfileResponseDto, 'Profile updated successfully')
+  @ApiForbiddenResponse('Forbidden - Insufficient permissions')
+  @ApiStandardErrorResponses()
   async updateMyProfile(
     @Req() req: Request,
     @Body() dto: UpdateProfileDto,
@@ -109,28 +68,16 @@ export class ProfileController {
 
   @Get('all')
   @Roles('ADMIN')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get all user profiles (Admin only)' })
-  @ApiResponse({
-    status: 200,
+  @ApiOperation({
+    summary: 'Get all user profiles',
+    description: 'Retrieve all user profiles in the system. Available only to Admins.',
+  })
+  @ApiOkResponse({
     description: 'All profiles retrieved successfully',
     type: [ProfileResponseDto],
   })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Admin access required',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
-  })
+  @ApiForbiddenResponse('Forbidden - Admin access required')
+  @ApiStandardErrorResponses()
   async getAllProfiles(): Promise<ProfileResponseDto[]> {
     return this.profileService.getAllProfiles();
   }

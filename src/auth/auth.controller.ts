@@ -8,7 +8,6 @@ import {
   UseGuards,
   Req,
   Patch,
-  BadRequestException,
   Param,
 } from '@nestjs/common';
 import { Request } from 'express';
@@ -24,13 +23,10 @@ import {
   ApiTags,
   ApiBearerAuth,
   ApiOperation,
-  ApiResponse,
   ApiQuery,
+  ApiBody,
+  ApiParam,
 } from '@nestjs/swagger';
-import {
-  ErrorResponseDto,
-  ValidationErrorResponseDto,
-} from '../common/dto/error-response.dto';
 import {
   MessageResponseDto,
   TokenResponseDto,
@@ -44,133 +40,88 @@ import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { VerifyEmailQueryDto } from './dto/verify-email-query.dto';
 import { UpgradeRoleDto } from './dto/upgrade-role.dto';
+import { UpgradeRoleResponseDto } from './dto/upgrade-role-response.dto';
+import {
+  ApiStandardResponses,
+  ApiStandardErrorResponses,
+  ApiSuccessResponse,
+  ApiForbiddenResponse,
+} from '../common/decorators/api-responses.decorator';
+import { ApiOkResponse } from '@nestjs/swagger';
 
-@ApiTags('Auth') // Groups under "Auth" in Swagger UI
+@ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
-  @ApiOperation({ summary: 'Register a new user' })
-  @ApiResponse({
-    status: 201,
-    description: 'User registered successfully',
-    type: UserRegisteredResponseDto,
+  @ApiOperation({
+    summary: 'Register new user',
+    description: 'Create a new user account. Email verification is required before login.',
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request - Validation failed or user already exists',
-    type: ValidationErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
-  })
+  @ApiBody({ type: RegisterDto })
+  @ApiStandardResponses(UserRegisteredResponseDto, 'User registered successfully', true)
+  @ApiStandardErrorResponses()
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
 
   @Post('login')
-  @ApiOperation({ summary: 'Sign in returning user' })
-  @ApiResponse({
-    status: 200,
-    description: 'User successfully logged in.',
-    type: TokenResponseDto,
+  @ApiOperation({
+    summary: 'User login',
+    description: 'Authenticate user and receive JWT tokens. Email must be verified.',
   })
-  @ApiResponse({
-    status: 401,
-    description: 'Invalid credentials or email not verified',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request - Validation failed',
-    type: ValidationErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
-  })
+  @ApiBody({ type: LoginDto })
+  @ApiSuccessResponse(TokenResponseDto, 'User successfully logged in')
+  @ApiStandardErrorResponses()
   login(@Body() dto: LoginDto, @Req() req: Request) {
     return this.authService.login(dto, req);
   }
 
   @Post('forgot-password')
-  @ApiOperation({ summary: 'Send password reset email' })
-  @ApiResponse({
-    status: 200,
-    description: 'Password reset email sent successfully',
-    type: MessageResponseDto,
+  @ApiOperation({
+    summary: 'Request password reset',
+    description: 'Send password reset email to user',
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request - Validation failed or user not found',
-    type: ValidationErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
-  })
+  @ApiBody({ type: ForgotPasswordDto })
+  @ApiSuccessResponse(MessageResponseDto, 'Password reset email sent successfully')
+  @ApiStandardErrorResponses()
   forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Change old password to new password' })
-  @ApiBearerAuth()
   @Patch('change-password')
-  @ApiResponse({
-    status: 200,
-    description: 'Password updated successfully',
-    type: PasswordResetResponseDto,
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Change password',
+    description: 'Change password for authenticated user using current password',
   })
-  @ApiResponse({
-    status: 400,
-    description:
-      'Bad Request - Validation failed or current password incorrect',
-    type: ValidationErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
-  })
+  @ApiBody({ type: ResetPasswordDto })
+  @ApiSuccessResponse(PasswordResetResponseDto, 'Password updated successfully')
+  @ApiStandardErrorResponses()
   async changePassword(@Req() req: Request, @Body() dto: ResetPasswordDto) {
     const user = req.user as { sub: string };
     return this.authService.resetPassword(user.sub, dto);
   }
 
   @Post('reset-password')
-  @ApiOperation({ summary: 'Reset password using token' })
-  @ApiResponse({
-    status: 200,
-    description: 'Password reset successfully',
-    type: PasswordResetResponseDto,
+  @ApiOperation({
+    summary: 'Reset password with token',
+    description: 'Reset password using token from password reset email',
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request - Validation failed or invalid token',
-    type: ValidationErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
-  })
+  @ApiBody({ type: CreateNewPasswordDto })
+  @ApiSuccessResponse(PasswordResetResponseDto, 'Password reset successfully')
+  @ApiStandardErrorResponses()
   resetPassword(@Body() dto: CreateNewPasswordDto) {
     return this.authService.createNewPassword(dto);
   }
 
   @Get('verify-email')
-  @ApiOperation({ summary: 'Verify email with token' })
+  @ApiOperation({
+    summary: 'Verify email address',
+    description: 'Verify email address using token sent to user\'s email',
+  })
   @ApiQuery({
     name: 'token',
     description: 'Email verification token',
@@ -178,142 +129,48 @@ export class AuthController {
     type: 'string',
     example: 'abc123def456ghi789',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Email verified successfully',
-    type: EmailVerifiedResponseDto,
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request - Invalid or expired token',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
-  })
+  @ApiSuccessResponse(EmailVerifiedResponseDto, 'Email verified successfully')
+  @ApiStandardErrorResponses()
   verifyEmail(@Query() query: VerifyEmailQueryDto) {
     return this.authService.verifyEmail(query.token);
   }
 
   @Post('resend-verification')
-  @ApiOperation({ summary: 'Resend email verification link' })
-  @ApiResponse({
-    status: 200,
-    description: 'Verification email resent successfully',
-    type: VerificationEmailSentResponseDto,
+  @ApiOperation({
+    summary: 'Resend verification email',
+    description: 'Resend email verification link to user',
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request - Validation failed or user not found',
-    type: ValidationErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
-  })
+  @ApiBody({ type: ResendVerificationDto })
+  @ApiSuccessResponse(VerificationEmailSentResponseDto, 'Verification email resent successfully')
+  @ApiStandardErrorResponses()
   resendVerification(@Body() dto: ResendVerificationDto) {
     return this.authService.resendVerificationEmail(dto.email);
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
-  @ApiBearerAuth()
-  @Get('admin-only')
-  @ApiOperation({ summary: 'Admin-only endpoint' })
-  getAdminStuff() {
-    return 'Secret admin data';
-  }
-
   @Post('refresh-token')
-  @ApiOperation({ summary: 'Refresh JWT access token' })
-  @ApiResponse({
-    status: 200,
-    description: 'Token refreshed successfully',
-    type: TokenResponseDto,
+  @ApiOperation({
+    summary: 'Refresh access token',
+    description: 'Generate a new access token using refresh token',
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request - Validation failed',
-    type: ValidationErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or expired refresh token',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
-  })
+  @ApiBody({ type: RefreshTokenDto })
+  @ApiSuccessResponse(TokenResponseDto, 'Token refreshed successfully')
+  @ApiStandardErrorResponses()
   refreshToken(@Body() dto: RefreshTokenDto) {
     return this.authService.refreshToken(dto.token);
   }
 
-  // Debug endpoint to check user status
-  @Get('debug-user/:email')
-  @ApiOperation({ summary: 'Debug user status (temporary)' })
-  @ApiResponse({
-    status: 200,
-    description: 'User status retrieved',
-  })
-  async debugUser(@Param('email') email: string) {
-    return this.authService.debugUser(email);
-  }
-
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
-  @ApiBearerAuth()
-  @Get('admin-stats')
-  @ApiOperation({ summary: 'Admin-only stats' })
-  getAdminStats() {
-    return 'Admin-only data';
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   @Post('upgrade-role')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Upgrade user role',
     description:
       'Upgrade user role (e.g., USER → PREMIUM). Users can self-upgrade to PREMIUM. Admins can assign any role.',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Role upgraded successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        message: { type: 'string' },
-        user: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            email: { type: 'string' },
-            role: { type: 'string' },
-          },
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request - Invalid role or user already has that role',
-    type: ValidationErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Insufficient permissions to upgrade to this role',
-    type: ErrorResponseDto,
-  })
+  @ApiBody({ type: UpgradeRoleDto })
+  @ApiSuccessResponse(UpgradeRoleResponseDto, 'Role upgraded successfully')
+  @ApiForbiddenResponse('Forbidden - Insufficient permissions to upgrade to this role')
+  @ApiStandardErrorResponses()
   async upgradeRole(
     @Body() dto: UpgradeRoleDto,
     @Req() req: Request,
@@ -326,28 +183,24 @@ export class AuthController {
     );
   }
 
+  @Post('admin/upgrade-role/:userId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
-  @ApiBearerAuth()
-  @Post('admin/upgrade-role/:userId')
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Admin: Upgrade any user role',
     description: 'Administrators can upgrade or downgrade any user role',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'User role updated successfully',
+  @ApiParam({
+    name: 'userId',
+    description: 'User ID to upgrade',
+    example: 'clx1234567890abcdef',
+    type: String,
   })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden - Admin access required',
-    type: ErrorResponseDto,
-  })
+  @ApiBody({ type: UpgradeRoleDto })
+  @ApiSuccessResponse(UpgradeRoleResponseDto, 'User role updated successfully')
+  @ApiForbiddenResponse('Forbidden - Admin access required')
+  @ApiStandardErrorResponses()
   async adminUpgradeRole(
     @Param('userId') userId: string,
     @Body() dto: UpgradeRoleDto,
@@ -359,5 +212,69 @@ export class AuthController {
       dto.role,
       { userId: admin.sub, role: admin.role as any },
     );
+  }
+
+  @Get('admin-only')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Admin-only endpoint',
+    description: 'Example admin-only endpoint for testing role-based access',
+  })
+  @ApiOkResponse({
+    description: 'Admin data retrieved',
+    schema: {
+      type: 'string',
+      example: 'Secret admin data',
+    },
+  })
+  @ApiForbiddenResponse('Forbidden - Admin access required')
+  @ApiStandardErrorResponses()
+  getAdminStuff() {
+    return 'Secret admin data';
+  }
+
+  @Get('admin-stats')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Admin-only stats',
+    description: 'Example admin-only stats endpoint',
+  })
+  @ApiOkResponse({
+    description: 'Admin stats retrieved',
+    schema: {
+      type: 'string',
+      example: 'Admin-only data',
+    },
+  })
+  @ApiForbiddenResponse('Forbidden - Admin access required')
+  @ApiStandardErrorResponses()
+  getAdminStats() {
+    return 'Admin-only data';
+  }
+
+  @Get('debug-user/:email')
+  @ApiOperation({
+    summary: 'Debug user status',
+    description: 'Debug endpoint to check user status (temporary)',
+  })
+  @ApiParam({
+    name: 'email',
+    description: 'User email address',
+    example: 'user@example.com',
+    type: String,
+  })
+  @ApiOkResponse({
+    description: 'User status retrieved',
+    schema: {
+      type: 'object',
+    },
+  })
+  @ApiStandardErrorResponses()
+  async debugUser(@Param('email') email: string) {
+    return this.authService.debugUser(email);
   }
 }

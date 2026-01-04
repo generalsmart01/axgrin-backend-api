@@ -1,167 +1,122 @@
 import {
   Controller,
-  Post,
   Get,
-  Patch,
-  Delete,
-  Param,
+  Post,
   Body,
+  Patch,
+  Param,
+  Delete,
   UseGuards,
   Req,
-  NotFoundException,
 } from '@nestjs/common';
 import { CategoryService } from './category.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { ReadOnlyGuard } from '../auth/guards/read-only.guard';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { CategoryResponseDto } from './dto/category-response.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ReadOnlyGuard } from '../auth/guards/read-only.guard';
 import {
   ApiBearerAuth,
   ApiTags,
   ApiOperation,
-  ApiResponse,
+  ApiParam,
   ApiBody,
-  ApiCreatedResponse,
-  ApiOkResponse,
 } from '@nestjs/swagger';
+import { Request } from 'express';
 import {
-  ErrorResponseDto,
-  ValidationErrorResponseDto,
-} from '../common/dto/error-response.dto';
-import { CategoryResponseDto } from './dto/category-response.dto';
+  ApiStandardResponses,
+  ApiStandardErrorResponses,
+  ApiNotFoundResponse,
+  ApiSuccessResponse,
+} from '../common/decorators/api-responses.decorator';
 import { MessageResponseDto } from '../common/dto/success-response.dto';
 
-@ApiTags('Category')
-@ApiBearerAuth()
+@ApiTags('Categories')
+@ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, ReadOnlyGuard)
 @Controller('categories')
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create a new category' })
+  @ApiOperation({
+    summary: 'Create category',
+    description: 'Create a new expense category for the authenticated user',
+  })
   @ApiBody({ type: CreateCategoryDto })
-  @ApiCreatedResponse({
-    description: 'Category created successfully',
-    type: CategoryResponseDto,
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request - Validation failed',
-    type: ValidationErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
-  })
-  create(@Body() dto: CreateCategoryDto, @Req() req) {
-    return this.categoryService.create(req.user.sub, dto);
+  @ApiStandardResponses(CategoryResponseDto, 'Category created successfully', true)
+  create(@Body() dto: CreateCategoryDto, @Req() req: Request) {
+    const user = req.user as { sub: string };
+    return this.categoryService.create(user.sub, dto);
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all categories for current user' })
-  @ApiOkResponse({
-    description: 'Categories retrieved successfully',
-    type: [CategoryResponseDto],
+  @ApiOperation({
+    summary: 'Get all categories',
+    description: 'Retrieve all expense categories for the authenticated user',
   })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
-  })
-  findAll(@Req() req) {
-    return this.categoryService.findAll(req.user.sub);
+  @ApiSuccessResponse(Array<CategoryResponseDto>, 'Categories retrieved successfully')
+  @ApiStandardErrorResponses()
+  findAll(@Req() req: Request) {
+    const user = req.user as { sub: string };
+    return this.categoryService.findAll(user.sub);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get category by ID' })
-  @ApiOkResponse({
-    description: 'Category retrieved successfully',
-    type: CategoryResponseDto,
+  @ApiOperation({
+    summary: 'Get category by ID',
+    description: 'Retrieve a specific category by its ID',
   })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-    type: ErrorResponseDto,
+  @ApiParam({
+    name: 'id',
+    description: 'Category ID',
+    example: 'clx1234567890abcdef',
+    type: String,
   })
-  @ApiResponse({
-    status: 404,
-    description: 'Category not found',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
-  })
-  findOne(@Param('id') id: string, @Req() req) {
-    return this.categoryService.findOne(req.user.sub, id);
+  @ApiSuccessResponse(CategoryResponseDto, 'Category retrieved successfully')
+  @ApiNotFoundResponse('Category not found')
+  @ApiStandardErrorResponses()
+  findOne(@Param('id') id: string, @Req() req: Request) {
+    const user = req.user as { sub: string };
+    return this.categoryService.findOne(user.sub, id);
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update category by ID' })
+  @ApiOperation({
+    summary: 'Update category',
+    description: 'Update an existing category',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Category ID',
+    example: 'clx1234567890abcdef',
+    type: String,
+  })
   @ApiBody({ type: UpdateCategoryDto })
-  @ApiOkResponse({
-    description: 'Category updated successfully',
-    type: CategoryResponseDto,
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request - Validation failed',
-    type: ValidationErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Category not found',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
-  })
-  update(@Param('id') id: string, @Body() dto: UpdateCategoryDto, @Req() req) {
-    return this.categoryService.update(req.user.sub, id, dto);
+  @ApiSuccessResponse(CategoryResponseDto, 'Category updated successfully')
+  @ApiNotFoundResponse('Category not found')
+  @ApiStandardErrorResponses()
+  update(@Param('id') id: string, @Body() dto: UpdateCategoryDto, @Req() req: Request) {
+    const user = req.user as { sub: string };
+    return this.categoryService.update(user.sub, id, dto);
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete category by ID' })
-  @ApiOkResponse({
-    description: 'Category deleted successfully',
-    type: MessageResponseDto,
+  @ApiOperation({
+    summary: 'Delete category',
+    description: 'Delete a category. Note: Categories with associated expenses cannot be deleted.',
   })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - Invalid or missing JWT token',
-    type: ErrorResponseDto,
+  @ApiParam({
+    name: 'id',
+    description: 'Category ID',
+    example: 'clx1234567890abcdef',
+    type: String,
   })
-  @ApiResponse({
-    status: 404,
-    description: 'Category not found',
-    type: ErrorResponseDto,
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error',
-    type: ErrorResponseDto,
-  })
-  remove(@Param('id') id: string, @Req() req) {
-    return this.categoryService.remove(req.user.sub, id);
+  @ApiSuccessResponse(MessageResponseDto, 'Category deleted successfully')
+  @ApiNotFoundResponse('Category not found')
+  @ApiStandardErrorResponses()
+  remove(@Param('id') id: string, @Req() req: Request) {
+    const user = req.user as { sub: string };
+    return this.categoryService.remove(user.sub, id);
   }
 }
