@@ -1,17 +1,18 @@
 // src/category/category.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 
 @Injectable()
 export class CategoryService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(userId: string, dto: CreateCategoryDto) {
     return this.prisma.category.create({
       data: {
         name: dto.name,
+        color: dto.color,
         userId, // 🔐 Link to the current user
       },
     });

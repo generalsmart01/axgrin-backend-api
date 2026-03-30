@@ -6,7 +6,7 @@ import { AIPremiumController } from './ai-premium.controller';
 import { FinancialContextService } from './financial-context.service';
 import { ResponseTemplateService } from './response-template.service';
 import { AIIntegrationService } from './ai-integration.service';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { NotificationModule } from '../notification/notification.module';
 
 @Module({

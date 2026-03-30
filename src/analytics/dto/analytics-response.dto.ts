@@ -16,8 +16,8 @@ export class UserAnalyticsDto {
   @ApiProperty({ description: 'Total expense count' })
   totalExpenses: number;
 
-  @ApiProperty({ description: 'Total budget goals count' })
-  totalBudgetGoals: number;
+  @ApiProperty({ description: 'Total budgets count' })
+  totalBudgets: number;
 
   @ApiProperty({ description: 'Total categories count' })
   totalCategories: number;
@@ -75,11 +75,11 @@ export class CategoryAnalyticsDto {
   percentage: number;
 }
 
-export class BudgetGoalAnalyticsDto {
-  @ApiProperty({ description: 'Budget goal ID' })
+export class BudgetAnalyticsDto {
+  @ApiProperty({ description: 'Budget ID' })
   goalId: string;
 
-  @ApiProperty({ description: 'Goal name' })
+  @ApiProperty({ description: 'Category name' })
   goalName: string;
 
   @ApiProperty({ description: 'Target amount' })
@@ -91,7 +91,7 @@ export class BudgetGoalAnalyticsDto {
   @ApiProperty({ description: 'Progress percentage' })
   progressPercentage: number;
 
-  @ApiProperty({ description: 'Goal status' })
+  @ApiProperty({ description: 'Status' })
   status: 'ON_TRACK' | 'AT_RISK' | 'EXCEEDED' | 'COMPLETED';
 }
 
@@ -140,8 +140,8 @@ export class DashboardAnalyticsDto {
   @ApiProperty({ description: 'Category breakdown' })
   categoryAnalytics: CategoryAnalyticsDto[];
 
-  @ApiProperty({ description: 'Budget goals progress' })
-  budgetGoalsAnalytics: BudgetGoalAnalyticsDto[];
+  @ApiProperty({ description: 'Budgets progress' })
+  budgetsAnalytics: BudgetAnalyticsDto[];
 
   @ApiProperty({ description: 'Admin analytics (only for ADMIN users)' })
   adminAnalytics?: AdminAnalyticsDto;

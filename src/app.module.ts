@@ -10,7 +10,7 @@ import { AuthModule } from './auth/auth.module'; // 👈 Add this
 import { UsersModule } from './users/users.module';
 import { IncomeModule } from './income/income.module';
 import { ExpenseModule } from './expense/expense.module';
-import { BudgetModule } from './budget-goal/budget-goal.module';
+import { BudgetModule } from './budget/budget.module';
 import { CategoryModule } from './category/category.module';
 import { NotificationModule } from './notification/notification.module';
 import { ChatHistoryModule } from './chat-history/chat-history.module';
@@ -24,14 +24,19 @@ import { PaymentModule } from './payment/payment.module';
 import { SupportTicketModule } from './support-ticket/support-ticket.module';
 import { CacheModule } from './cache/cache.module';
 import { SecurityModule } from './security/security.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { OnboardingModule } from './onboarding/onboarding.module';
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
   imports: [
+    PrismaModule,
     AuthModule, // 👈 Make sure it's listed here
     UsersModule,
     IncomeModule,
     ExpenseModule,
     BudgetModule,
+    DashboardModule,
     CategoryModule,
     NotificationModule,
     ChatHistoryModule,
@@ -45,6 +50,8 @@ import { SecurityModule } from './security/security.module';
     SupportTicketModule,
     CacheModule,
     SecurityModule,
+    DashboardModule,
+    OnboardingModule,
     MailerModule.forRoot({
       transport: {
         host: 'smtp.gmail.com',
@@ -76,4 +83,4 @@ import { SecurityModule } from './security/security.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

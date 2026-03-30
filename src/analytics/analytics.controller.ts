@@ -23,7 +23,7 @@ import {
   UserAnalyticsDto,
   MonthlyAnalyticsDto,
   CategoryAnalyticsDto,
-  BudgetGoalAnalyticsDto,
+  BudgetAnalyticsDto,
   AdminAnalyticsDto,
 } from './dto/analytics-response.dto';
 import {
@@ -38,7 +38,7 @@ import { ApiOkResponse } from '@nestjs/swagger';
 @Controller('analytics')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AnalyticsController {
-  constructor(private readonly analyticsService: AnalyticsService) {}
+  constructor(private readonly analyticsService: AnalyticsService) { }
 
   @Get('dashboard')
   @Roles('ADMIN', 'USER', 'PREMIUM')
@@ -114,7 +114,7 @@ export class AnalyticsController {
     summary: 'Get budget goal analytics',
     description: 'Get analytics for all budget goals including progress and performance',
   })
-  @ApiSuccessResponse(BudgetGoalAnalyticsDto, 'Budget goal analytics retrieved successfully')
+  @ApiSuccessResponse(BudgetAnalyticsDto, 'Budget analytics retrieved successfully')
   @ApiForbiddenResponse('Forbidden - Premium feature (USER role limited)')
   @ApiStandardErrorResponses()
   async getBudgetGoalAnalytics(@Req() req: Request) {

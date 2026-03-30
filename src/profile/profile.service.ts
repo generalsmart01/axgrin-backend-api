@@ -1,11 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ProfileResponseDto } from './dto/profile-response.dto';
 
 @Injectable()
 export class ProfileService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async getProfile(userId: string): Promise<ProfileResponseDto> {
     const user = await this.prisma.user.findUnique({
@@ -17,7 +17,7 @@ export class ProfileService {
           select: {
             incomes: true,
             expenses: true,
-            budgetGoals: true,
+            budgets: true,
             categories: true,
           },
         },
@@ -35,7 +35,7 @@ export class ProfileService {
       lastName: user.lastName,
       role: user.role,
       gender: user.gender,
-      emailVerified: user.emailVerified,
+      isVerified: user.isVerified,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       bio: user.profile?.bio || null,
@@ -43,13 +43,13 @@ export class ProfileService {
       lastVerificationEmailSentAt: user.lastVerificationEmailSentAt,
       settings: user.settings
         ? {
-            currency: user.settings.currency,
-            theme: user.settings.theme,
-          }
+          currency: user.settings.currency,
+          theme: user.settings.theme,
+        }
         : null,
       totalIncomes: user._count.incomes,
       totalExpenses: user._count.expenses,
-      totalBudgetGoals: user._count.budgetGoals,
+      totalBudgets: user._count.budgets,
       totalCategories: user._count.categories,
     };
   }
@@ -82,7 +82,7 @@ export class ProfileService {
           select: {
             incomes: true,
             expenses: true,
-            budgetGoals: true,
+            budgets: true,
             categories: true,
           },
         },
@@ -114,7 +114,7 @@ export class ProfileService {
             select: {
               incomes: true,
               expenses: true,
-              budgetGoals: true,
+              budgets: true,
               categories: true,
             },
           },
@@ -128,7 +128,7 @@ export class ProfileService {
         lastName: userWithProfile!.lastName,
         role: userWithProfile!.role,
         gender: userWithProfile!.gender,
-        emailVerified: userWithProfile!.emailVerified,
+        isVerified: userWithProfile!.isVerified,
         createdAt: userWithProfile!.createdAt,
         updatedAt: userWithProfile!.updatedAt,
         bio: userWithProfile!.profile?.bio || null,
@@ -137,13 +137,13 @@ export class ProfileService {
           userWithProfile!.lastVerificationEmailSentAt,
         settings: userWithProfile!.settings
           ? {
-              currency: userWithProfile!.settings.currency,
-              theme: userWithProfile!.settings.theme,
-            }
+            currency: userWithProfile!.settings.currency,
+            theme: userWithProfile!.settings.theme,
+          }
           : null,
         totalIncomes: userWithProfile!._count.incomes,
         totalExpenses: userWithProfile!._count.expenses,
-        totalBudgetGoals: userWithProfile!._count.budgetGoals,
+        totalBudgets: userWithProfile!._count.budgets,
         totalCategories: userWithProfile!._count.categories,
       };
     }
@@ -155,7 +155,7 @@ export class ProfileService {
       lastName: updatedUser.lastName,
       role: updatedUser.role,
       gender: updatedUser.gender,
-      emailVerified: updatedUser.emailVerified,
+      isVerified: updatedUser.isVerified,
       createdAt: updatedUser.createdAt,
       updatedAt: updatedUser.updatedAt,
       bio: updatedUser.profile?.bio || null,
@@ -163,13 +163,13 @@ export class ProfileService {
       lastVerificationEmailSentAt: updatedUser.lastVerificationEmailSentAt,
       settings: updatedUser.settings
         ? {
-            currency: updatedUser.settings.currency,
-            theme: updatedUser.settings.theme,
-          }
+          currency: updatedUser.settings.currency,
+          theme: updatedUser.settings.theme,
+        }
         : null,
       totalIncomes: updatedUser._count.incomes,
       totalExpenses: updatedUser._count.expenses,
-      totalBudgetGoals: updatedUser._count.budgetGoals,
+      totalBudgets: updatedUser._count.budgets,
       totalCategories: updatedUser._count.categories,
     };
   }
@@ -183,7 +183,7 @@ export class ProfileService {
           select: {
             incomes: true,
             expenses: true,
-            budgetGoals: true,
+            budgets: true,
             categories: true,
           },
         },
@@ -197,7 +197,7 @@ export class ProfileService {
       lastName: user.lastName,
       role: user.role,
       gender: user.gender,
-      emailVerified: user.emailVerified,
+      isVerified: user.isVerified,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       bio: user.profile?.bio || null,
@@ -205,13 +205,13 @@ export class ProfileService {
       lastVerificationEmailSentAt: user.lastVerificationEmailSentAt,
       settings: user.settings
         ? {
-            currency: user.settings.currency,
-            theme: user.settings.theme,
-          }
+          currency: user.settings.currency,
+          theme: user.settings.theme,
+        }
         : null,
       totalIncomes: user._count.incomes,
       totalExpenses: user._count.expenses,
-      totalBudgetGoals: user._count.budgetGoals,
+      totalBudgets: user._count.budgets,
       totalCategories: user._count.categories,
     }));
   }

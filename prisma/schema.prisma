@@ -23,18 +23,29 @@ enum Gender {
   FEMALE
 }
 
+enum OnboardingStatus {
+  INCOMPLETE
+  STARTED
+  COMPLETED
+}
+
 model User {
-  id                          String    @id @default(cuid())
+  id                          String    @id @default(uuid())
   email                       String    @unique
   firstName                   String?
   lastName                    String?
   role                        Role      @default(USER)
   gender                      Gender?
-  password                    String
+  passwordHash                String
+  currency                    String    @default("NGN")
+  monthStartDay               Int       @default(1)
+  incomeFrequency             String?   // "monthly" | "irregular"
+  onboardingStatus            OnboardingStatus @default(INCOMPLETE)
+  onboardingStep              Int       @default(1)
   refreshToken                String?
   resetToken                  String?
   resetTokenExp               DateTime?
-  emailVerified               Boolean   @default(false)
+  isVerified                  Boolean   @default(false)
   emailVerificationToken      String?
   emailVerificationTokenExp   DateTime?
   lastVerificationEmailSentAt DateTime?
@@ -44,7 +55,7 @@ model User {
   profile       UserProfile?
   incomes       Income[]
   expenses      Expense[]
-  budgetGoals   BudgetGoal[]
+  budgets       Budget[]
   categories    Category[]
   chatHistory   ChatHistory[]
   notifications Notification[]
@@ -69,11 +80,12 @@ model UserProfile {
 }
 
 model Income {
-  id     String   @id @default(cuid())
-  userId String
-  amount Float
-  source String
-  date   DateTime @default(now())
+  id        String   @id @default(uuid())
+  userId    String
+  amount    Float
+  source    String
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id])
 
@@ -83,12 +95,13 @@ model Income {
 }
 
 model Expense {
-  id         String   @id @default(cuid())
+  id         String   @id @default(uuid())
   userId     String
-  amount     Float
   categoryId String
+  amount     Float
   note       String?
   date       DateTime @default(now())
+  createdAt  DateTime @default(now())
 
   user     User     @relation(fields: [userId], references: [id])
   category Category @relation(fields: [categoryId], references: [id])
@@ -99,24 +112,26 @@ model Expense {
   @@index([userId, date])
 }
 
-model BudgetGoal {
-  id         String   @id @default(cuid())
+model Budget {
+  id         String @id @default(uuid())
   userId     String
   categoryId String
-  target     Float
-  startDate  DateTime
-  endDate    DateTime
+  amount     Float
+  month      Int
+  year       Int
 
   user     User     @relation(fields: [userId], references: [id])
   category Category @relation(fields: [categoryId], references: [id])
 }
 
 model Category {
-  id       String       @id @default(cuid())
-  userId   String
-  name     String
-  expenses Expense[]
-  goals    BudgetGoal[]
+  id        String   @id @default(uuid())
+  userId    String
+  name      String
+  color     String?
+  createdAt DateTime @default(now())
+  expenses  Expense[]
+  budgets   Budget[]
 
   user User @relation(fields: [userId], references: [id])
 }

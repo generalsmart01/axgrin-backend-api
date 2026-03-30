@@ -10,8 +10,8 @@ import {
   UseGuards,
   Query,
 } from '@nestjs/common';
-import { CreateBudgetGoalDto } from './dto/create-budget-goal.dto';
-import { UpdateBudgetGoalDto } from './dto/update-budget-goal.dto';
+import { CreateBudgetDto } from './dto/create-budget.dto';
+import { UpdateBudgetDto } from './dto/update-budget.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ReadOnlyGuard } from '../auth/guards/read-only.guard';
 import {
@@ -23,12 +23,12 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { Request } from 'express';
-import { BudgetService } from './budget-goal.service';
+import { BudgetService } from './budget.service';
 import {
-  BudgetGoalResponseDto,
+  BudgetResponseDto,
   RemainingBudgetResponseDto,
   BudgetSummaryResponseDto,
-} from './dto/budget-goal-response.dto';
+} from './dto/budget-response.dto';
 import {
   ApiStandardResponses,
   ApiStandardErrorResponses,
@@ -37,21 +37,21 @@ import {
 } from '../common/decorators/api-responses.decorator';
 import { MessageResponseDto } from '../common/dto/success-response.dto';
 
-@ApiTags('Budget Goals')
+@ApiTags('Budgets')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, ReadOnlyGuard)
-@Controller('budget-goal')
-export class BudgetGoalController {
-  constructor(private readonly budgetService: BudgetService) {}
+@Controller('budget')
+export class BudgetController {
+  constructor(private readonly budgetService: BudgetService) { }
 
   @Post()
   @ApiOperation({
     summary: 'Create budget goal',
     description: 'Create a new budget goal for a specific category and time period',
   })
-  @ApiBody({ type: CreateBudgetGoalDto })
-  @ApiStandardResponses(BudgetGoalResponseDto, 'Budget goal created successfully', true)
-  create(@Body() dto: CreateBudgetGoalDto, @Req() req: Request) {
+  @ApiBody({ type: CreateBudgetDto })
+  @ApiStandardResponses(BudgetResponseDto, 'Budget goal created successfully', true)
+  create(@Body() dto: CreateBudgetDto, @Req() req: Request) {
     const user = req.user as { sub: string };
     return this.budgetService.create(user.sub, dto);
   }
@@ -61,7 +61,7 @@ export class BudgetGoalController {
     summary: 'Get all budget goals',
     description: 'Retrieve all budget goals for the authenticated user',
   })
-  @ApiSuccessResponse(Array<BudgetGoalResponseDto>, 'Budget goals retrieved successfully')
+  @ApiSuccessResponse(Array<BudgetResponseDto>, 'Budget goals retrieved successfully')
   @ApiStandardErrorResponses()
   findAll(@Req() req: Request) {
     const user = req.user as { sub: string };
@@ -109,7 +109,7 @@ export class BudgetGoalController {
     example: 'clx1234567890abcdef',
     type: String,
   })
-  @ApiSuccessResponse(BudgetGoalResponseDto, 'Budget goal retrieved successfully')
+  @ApiSuccessResponse(BudgetResponseDto, 'Budget goal retrieved successfully')
   @ApiNotFoundResponse('Budget goal not found')
   @ApiStandardErrorResponses()
   findOne(@Param('id') id: string, @Req() req: Request) {
@@ -128,11 +128,11 @@ export class BudgetGoalController {
     example: 'clx1234567890abcdef',
     type: String,
   })
-  @ApiBody({ type: UpdateBudgetGoalDto })
-  @ApiSuccessResponse(BudgetGoalResponseDto, 'Budget goal updated successfully')
+  @ApiBody({ type: UpdateBudgetDto })
+  @ApiSuccessResponse(BudgetResponseDto, 'Budget goal updated successfully')
   @ApiNotFoundResponse('Budget goal not found')
   @ApiStandardErrorResponses()
-  update(@Param('id') id: string, @Body() dto: UpdateBudgetGoalDto, @Req() req: Request) {
+  update(@Param('id') id: string, @Body() dto: UpdateBudgetDto, @Req() req: Request) {
     const user = req.user as { sub: string };
     return this.budgetService.update(user.sub, id, dto);
   }

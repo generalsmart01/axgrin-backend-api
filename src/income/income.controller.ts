@@ -41,7 +41,7 @@ import { MessageResponseDto } from '../common/dto/success-response.dto';
 @UseGuards(JwtAuthGuard, ReadOnlyGuard)
 @Controller('income')
 export class IncomeController {
-  constructor(private readonly incomeService: IncomeService) {}
+  constructor(private readonly incomeService: IncomeService) { }
 
   @Post()
   @ApiOperation({
@@ -61,21 +61,18 @@ export class IncomeController {
     description: 'Retrieve paginated list of income records for the authenticated user',
   })
   @ApiQuery({
-    name: 'page',
+    name: 'month',
     required: false,
     type: Number,
-    description: 'Page number (1-based)',
+    description: 'Filter by month (1-12)',
     example: 1,
-    minimum: 1,
   })
   @ApiQuery({
-    name: 'limit',
+    name: 'year',
     required: false,
     type: Number,
-    description: 'Items per page',
-    example: 20,
-    minimum: 1,
-    maximum: 100,
+    description: 'Filter by year',
+    example: 2024,
   })
   @ApiPaginatedResponse(IncomeResponseDto, 'Income records retrieved successfully')
   @ApiStandardErrorResponses()
@@ -83,9 +80,11 @@ export class IncomeController {
     @Req() req: Request,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number = 20,
+    @Query('month') month?: number,
+    @Query('year') year?: number,
   ) {
     const user = req.user as any;
-    return this.incomeService.findAll(user.sub, page, Math.min(limit, 100));
+    return this.incomeService.findAll(user.sub, page, Math.min(limit, 100), month, year);
   }
 
   @Get(':id')

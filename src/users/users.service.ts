@@ -1,10 +1,10 @@
 // src/users/users.service.ts
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async getAllUsers() {
     return this.prisma.user.findMany({
@@ -15,7 +15,9 @@ export class UsersService {
         lastName: true,
         role: true,
         gender: true,
-        emailVerified: true,
+        isVerified: true,
+        onboardingStatus: true,
+        onboardingStep: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -32,7 +34,9 @@ export class UsersService {
         lastName: true,
         role: true,
         gender: true,
-        emailVerified: true,
+        isVerified: true,
+        onboardingStatus: true,
+        onboardingStep: true,
         createdAt: true,
         updatedAt: true,
       },

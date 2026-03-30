@@ -1,6 +1,6 @@
 // src/admin/admin-dashboard.service.ts
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 import {
   AdminDashboardDto,
   MainPageStatisticsDto,
@@ -11,7 +11,7 @@ import { Role } from '@prisma/client';
 
 @Injectable()
 export class AdminDashboardService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async getAdminDashboard(): Promise<AdminDashboardDto> {
     const [mainPage, users, customerCare] = await Promise.all([
@@ -77,7 +77,7 @@ export class AdminDashboardService {
 
     // Total budget goals and categories
     const [totalBudgetGoals, totalCategories] = await Promise.all([
-      this.prisma.budgetGoal.count(),
+      this.prisma.budget.count(),
       this.prisma.category.count(),
     ]);
 
@@ -108,10 +108,10 @@ export class AdminDashboardService {
     const averageUserBalance =
       userBalances.length > 0
         ? userBalances.reduce((sum, user) => {
-            const income = user.incomes.reduce((s, i) => s + i.amount, 0);
-            const expense = user.expenses.reduce((s, e) => s + e.amount, 0);
-            return sum + (income - expense);
-          }, 0) / userBalances.length
+          const income = user.incomes.reduce((s, i) => s + i.amount, 0);
+          const expense = user.expenses.reduce((s, e) => s + e.amount, 0);
+          return sum + (income - expense);
+        }, 0) / userBalances.length
         : 0;
 
     return {
@@ -122,7 +122,7 @@ export class AdminDashboardService {
       totalSystemExpenses,
       systemNetBalance,
       totalTransactions,
-      totalBudgetGoals,
+      totalBudgets: totalBudgetGoals,
       totalCategories,
       totalChatInteractions,
       mostPopularCategory,
@@ -153,8 +153,8 @@ export class AdminDashboardService {
 
     // Verified vs unverified
     const [verifiedUsers, unverifiedUsers] = await Promise.all([
-      this.prisma.user.count({ where: { emailVerified: true } }),
-      this.prisma.user.count({ where: { emailVerified: false } }),
+      this.prisma.user.count({ where: { isVerified: true } }),
+      this.prisma.user.count({ where: { isVerified: false } }),
     ]);
 
     // New users this week
@@ -216,7 +216,7 @@ export class AdminDashboardService {
     // Average accounts per user (categories + budget goals)
     const totalAccounts =
       (await this.prisma.category.count()) +
-      (await this.prisma.budgetGoal.count());
+      (await this.prisma.budget.count());
     const averageAccountsPerUser =
       totalUsers > 0 ? totalAccounts / totalUsers : 0;
 

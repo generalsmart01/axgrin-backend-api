@@ -8,7 +8,7 @@ import { SubscriptionAnalyticsController } from './subscription-analytics.contro
 import { SubscriptionAnalyticsService } from './subscription-analytics.service';
 import { SubscriptionManagementController } from './subscription-management.controller';
 import { SubscriptionManagementService } from './subscription-management.service';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { PaymentModule } from '../payment/payment.module';
 import { NotificationModule } from '../notification/notification.module';
 import { AuthModule } from '../auth/auth.module';

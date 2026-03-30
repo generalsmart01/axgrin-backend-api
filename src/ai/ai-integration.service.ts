@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { AIService } from './ai.service';
 import { FinancialContextService } from './financial-context.service';
 import { NotificationService } from '../notification/notification.service';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class AIIntegrationService {

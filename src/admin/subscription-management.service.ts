@@ -7,7 +7,7 @@ import {
   Inject,
   forwardRef,
 } from '@nestjs/common';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { SubscriptionPlan, SubscriptionStatus, Role } from '@prisma/client';
 import { PaymentService } from '../payment/payment.service';
 import { NotificationService } from '../notification/notification.service';

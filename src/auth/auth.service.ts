@@ -11,7 +11,7 @@ import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { randomBytes } from 'crypto';
 import { addMinutes } from 'date-fns';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { MailerService } from '@nestjs-modules/mailer';
 import { differenceInMinutes } from 'date-fns';
 import { Request } from 'express';
@@ -29,7 +29,7 @@ export class AuthService {
     private mailerService: MailerService,
     private notificationService: NotificationService,
     private roleUpgradeService: RoleUpgradeService,
-  ) {}
+  ) { }
 
   // Register Auth
   async register(dto: RegisterDto) {
@@ -48,7 +48,7 @@ export class AuthService {
         firstName: dto.firstName,
         lastName: dto.lastName,
         role: 'USER',
-        password: hashed,
+        passwordHash: hashed,
         emailVerificationToken: token,
         emailVerificationTokenExp: expiresAt,
       },
@@ -60,6 +60,7 @@ export class AuthService {
       dto.firstName,
     );
 
+    const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').split(',')[0].replace(/\/$/, '');
     await this.mailerService.sendMail({
       to: dto.email,
       subject: 'Verify your email - Axgrin',
@@ -67,7 +68,7 @@ export class AuthService {
       context: {
         firstName: dto.firstName,
         lastName: dto.lastName,
-        verifyUrl: `${process.env.FRONTEND_URL}/auth/verify-email?token=${token}`,
+        verifyUrl: `${frontendUrl}/auth/verify-email?token=${token}`,
       },
     });
 
@@ -79,11 +80,11 @@ export class AuthService {
       where: { email: dto.email },
     });
 
-    if (!user || !(await bcrypt.compare(dto.password, user.password))) {
+    if (!user || !(await bcrypt.compare(dto.password, user.passwordHash))) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    if (!user.emailVerified) {
+    if (!user.isVerified) {
       throw new UnauthorizedException(
         'Please verify your email before logging in.',
       );
@@ -149,7 +150,8 @@ export class AuthService {
       data: { resetToken: token, resetTokenExp: expiration },
     });
 
-    const resetUrl = `${process.env.FRONTEND_URL}/auth/reset-password?token=${token}`;
+    const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').split(',')[0].replace(/\/$/, '');
+    const resetUrl = `${frontendUrl}/auth/reset-password?token=${token}`;
 
     await this.mailerService.sendMail({
       to: user.email,
@@ -180,12 +182,23 @@ export class AuthService {
       throw new BadRequestException('Invalid or expired reset token');
     }
 
+    // Prevent using the same password
+    const isSamePassword = await bcrypt.compare(
+      dto.newPassword,
+      user.passwordHash,
+    );
+    if (isSamePassword) {
+      throw new BadRequestException(
+        'New password cannot be the same as your old password',
+      );
+    }
+
     const hashed = await bcrypt.hash(dto.newPassword, 10);
 
     await this.prisma.user.update({
       where: { id: user.id },
       data: {
-        password: hashed,
+        passwordHash: hashed,
         resetToken: null,
         resetTokenExp: null,
       },
@@ -217,13 +230,13 @@ export class AuthService {
     console.log('User found:', {
       id: user.id,
       email: user.email,
-      emailVerified: user.emailVerified,
+      emailVerified: user.isVerified,
     });
 
     const updatedUser = await this.prisma.user.update({
       where: { id: user.id },
       data: {
-        emailVerified: true,
+        isVerified: true,
         emailVerificationToken: null,
         emailVerificationTokenExp: null,
       },
@@ -231,7 +244,7 @@ export class AuthService {
 
     console.log('User updated:', {
       id: updatedUser.id,
-      emailVerified: updatedUser.emailVerified,
+      isVerified: updatedUser.isVerified,
     });
 
     return { message: 'Email verified successfully' };
@@ -249,7 +262,7 @@ export class AuthService {
       select: {
         id: true,
         email: true,
-        emailVerified: true,
+        isVerified: true,
         emailVerificationToken: true,
         emailVerificationTokenExp: true,
         resetToken: true,
@@ -284,7 +297,7 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { email } });
 
     if (!user) throw new BadRequestException('User not found');
-    if (user.emailVerified)
+    if (user.isVerified)
       throw new BadRequestException('Email already verified');
 
     // Rate limit: allow resend only every 5 minutes
@@ -309,6 +322,7 @@ export class AuthService {
       },
     });
 
+    const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').split(',')[0].replace(/\/$/, '');
     await this.mailerService.sendMail({
       to: user.email,
       subject: 'Verify your email - Axgrin',
@@ -316,7 +330,7 @@ export class AuthService {
       context: {
         firstName: user.firstName,
         lastName: user.lastName,
-        verifyUrl: `${process.env.FRONTEND_URL}/auth/verify-email?token=${token}`,
+        verifyUrl: `${frontendUrl}/auth/verify-email?token=${token}`,
       },
     });
 
@@ -354,7 +368,7 @@ export class AuthService {
 
     if (!user) throw new BadRequestException('User not found');
 
-    const isMatch = await bcrypt.compare(dto.currentPassword, user.password);
+    const isMatch = await bcrypt.compare(dto.currentPassword, user.passwordHash);
     if (!isMatch)
       throw new BadRequestException('Current password is incorrect');
 
@@ -362,7 +376,7 @@ export class AuthService {
 
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { password: newHashed },
+      data: { passwordHash: newHashed },
     });
 
     return { message: 'Password updated successfully' };

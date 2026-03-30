@@ -1,6 +1,6 @@
 // src/reports/reports.service.ts
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { GenerateReportDto, ReportType, ReportFormat } from './dto/generate-report.dto';
 import { ActivityTrackingService } from '../analytics/activity-tracking.service';
 
@@ -9,7 +9,7 @@ export class ReportsService {
   constructor(
     private prisma: PrismaService,
     private activityTracking: ActivityTrackingService,
-  ) {}
+  ) { }
 
   async generateReport(
     userId: string,
@@ -142,10 +142,11 @@ export class ReportsService {
   }
 
   private async getBudgetReport(userId: string, startDate: Date | null, endDate: Date) {
-    const budgets = await this.prisma.budgetGoal.findMany({
+    const budgets = await this.prisma.budget.findMany({
       where: {
         userId,
-        ...(startDate && { startDate: { gte: startDate } }),
+        // For reporting, we might want to filter by the months covered by the start/end date
+        // but for simplicity, let's just fetch all budgets for now or adapt as needed.
       },
       include: {
         category: true,
@@ -154,30 +155,33 @@ export class ReportsService {
 
     const budgetsWithProgress = await Promise.all(
       budgets.map(async (budget) => {
+        const bStartDate = new Date(budget.year, budget.month - 1, 1);
+        const bEndDate = new Date(budget.year, budget.month, 0, 23, 59, 59);
+
         const expenses = await this.prisma.expense.aggregate({
           where: {
             userId,
             categoryId: budget.categoryId,
             date: {
-              gte: budget.startDate,
-              lte: budget.endDate,
+              gte: bStartDate,
+              lte: bEndDate,
             },
           },
           _sum: { amount: true },
         });
 
         const spent = expenses._sum.amount || 0;
-        const remaining = budget.target - spent;
-        const progress = (spent / budget.target) * 100;
+        const remaining = budget.amount - spent;
+        const progress = budget.amount > 0 ? (spent / budget.amount) * 100 : 0;
 
         return {
           category: budget.category.name,
-          target: budget.target,
+          budget: budget.amount,
           spent,
           remaining,
           progress: Number(progress.toFixed(2)),
-          startDate: budget.startDate,
-          endDate: budget.endDate,
+          month: budget.month,
+          year: budget.year,
         };
       }),
     );
@@ -283,7 +287,7 @@ export class ReportsService {
 
   private async getMonthlyReport(userId: string, startDate: Date | null, endDate: Date) {
     const actualStartDate = startDate || new Date(new Date().setMonth(new Date().getMonth() - 6));
-    
+
     const [incomes, expenses] = await Promise.all([
       this.prisma.income.findMany({
         where: {

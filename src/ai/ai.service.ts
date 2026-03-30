@@ -1,6 +1,6 @@
 // src/ai/ai.service.ts
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { FinancialContextService } from './financial-context.service';
 import { ResponseTemplateService } from './response-template.service';
 

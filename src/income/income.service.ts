@@ -4,13 +4,13 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateIncomeDto } from './dto/create-income.dto';
 import { UpdateIncomeDto } from './dto/update-income.dto';
 
 @Injectable()
 export class IncomeService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(userId: string, dto: CreateIncomeDto) {
     return this.prisma.income.create({
@@ -21,18 +21,28 @@ export class IncomeService {
     });
   }
 
-  async findAll(userId: string, page: number = 1, limit: number = 20) {
+  async findAll(userId: string, page: number = 1, limit: number = 20, month?: number, year?: number) {
     const skip = (page - 1) * limit;
-    const take = Math.min(limit, 100); // Max 100 items per page
+    const take = Math.min(limit, 100);
+
+    const where: any = { userId };
+    if (month && year) {
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0, 23, 59, 59);
+      where.date = {
+        gte: startDate,
+        lte: endDate,
+      };
+    }
 
     const [data, total] = await Promise.all([
       this.prisma.income.findMany({
-        where: { userId },
+        where,
         orderBy: { date: 'desc' },
         skip,
         take,
       }),
-      this.prisma.income.count({ where: { userId } }),
+      this.prisma.income.count({ where }),
     ]);
 
     return {

@@ -1,66 +1,48 @@
 // src/budget-goal/dto/budget-goal-response.dto.ts
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export class BudgetGoalResponseDto {
+export class BudgetResponseDto {
   @ApiProperty({
-    description: 'Budget goal unique identifier',
+    description: 'Budget unique identifier',
     example: 'clx1234567890abcdef',
     type: 'string',
   })
   id: string;
 
   @ApiProperty({
-    description: 'User ID who owns this budget goal',
+    description: 'User ID who owns this budget',
     example: 'clx0987654321fedcba',
     type: 'string',
   })
   userId: string;
 
   @ApiProperty({
-    description: 'Category ID this budget goal belongs to',
+    description: 'Category ID this budget belongs to',
     example: 'clx1234567890abcdef',
     type: 'string',
   })
   categoryId: string;
 
   @ApiProperty({
-    description: 'Target amount to spend within the time period',
+    description: 'Amount set for the budget',
     example: 2000.0,
     type: 'number',
   })
-  target: number;
+  amount: number;
 
   @ApiProperty({
-    description: 'Start date of the budget period',
-    example: '2024-01-01T00:00:00.000Z',
-    type: 'string',
-    format: 'date-time',
+    description: 'Month of the budget (1-12)',
+    example: 1,
+    type: 'number',
   })
-  startDate: string;
+  month: number;
 
   @ApiProperty({
-    description: 'End date of the budget period',
-    example: '2024-01-31T23:59:59.000Z',
-    type: 'string',
-    format: 'date-time',
+    description: 'Year of the budget',
+    example: 2024,
+    type: 'number',
   })
-  endDate: string;
-
-  @ApiProperty({
-    description: 'When the budget goal was created',
-    example: '2024-01-01T00:00:00.000Z',
-    type: 'string',
-    format: 'date-time',
-  })
-  createdAt: Date;
-
-  @ApiProperty({
-    description: 'When the budget goal was last updated',
-    example: '2024-01-15T10:30:00.000Z',
-    type: 'string',
-    format: 'date-time',
-  })
-  updatedAt: Date;
+  year: number;
 }
 
 export class RemainingBudgetResponseDto {

@@ -33,8 +33,8 @@ export class ProfileResponseDto {
   })
   gender: Gender | null;
 
-  @ApiProperty({ description: 'Email verification status' })
-  emailVerified: boolean;
+  @ApiProperty({ description: 'Verification status' })
+  isVerified: boolean;
 
   @ApiProperty({
     description: 'Account creation date',
@@ -88,8 +88,8 @@ export class ProfileResponseDto {
   @ApiProperty({ description: 'Total expense count' })
   totalExpenses: number;
 
-  @ApiProperty({ description: 'Total budget goals count' })
-  totalBudgetGoals: number;
+  @ApiProperty({ description: 'Total budgets count' })
+  totalBudgets: number;
 
   @ApiProperty({ description: 'Total categories count' })
   totalCategories: number;

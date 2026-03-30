@@ -1,15 +1,18 @@
-// src/expense/expense.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class ExpenseService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationService: NotificationService,
+  ) { }
 
   async create(userId: string, dto: CreateExpenseDto) {
-    return this.prisma.expense.create({
+    const expense = await this.prisma.expense.create({
       data: {
         userId,
         amount: dto.amount,
@@ -17,16 +20,83 @@ export class ExpenseService {
         note: dto.note,
         date: dto.date ?? new Date(),
       },
+      include: {
+        category: true,
+      },
     });
+
+    // Budget Check Logic
+    const date = new Date(expense.date);
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+
+    const budget = await this.prisma.budget.findFirst({
+      where: {
+        userId,
+        categoryId: dto.categoryId,
+        month,
+        year,
+      },
+    });
+
+    if (budget) {
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0, 23, 59, 59);
+
+      const aggregate = await this.prisma.expense.aggregate({
+        where: {
+          userId,
+          categoryId: dto.categoryId,
+          date: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+        _sum: {
+          amount: true,
+        },
+      });
+
+      const totalSpent = aggregate._sum.amount || 0;
+      const percentage = (totalSpent / budget.amount) * 100;
+
+      if (totalSpent > budget.amount) {
+        await this.notificationService.sendBudgetExceededNotification(
+          userId,
+          expense.category.name,
+          totalSpent,
+          budget.amount,
+        );
+      } else if (percentage >= 80) {
+        await this.notificationService.sendBudgetAlertNotification(
+          userId,
+          expense.category.name,
+          totalSpent,
+          budget.amount,
+        );
+      }
+    }
+
+    return expense;
   }
 
-  async findAll(userId: string, page: number = 1, limit: number = 20) {
+  async findAll(userId: string, page: number = 1, limit: number = 20, month?: number, year?: number) {
     const skip = (page - 1) * limit;
-    const take = Math.min(limit, 100); // Max 100 items per page
+    const take = Math.min(limit, 100);
+
+    const where: any = { userId };
+    if (month && year) {
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0, 23, 59, 59);
+      where.date = {
+        gte: startDate,
+        lte: endDate,
+      };
+    }
 
     const [data, total] = await Promise.all([
       this.prisma.expense.findMany({
-        where: { userId },
+        where,
         orderBy: { date: 'desc' },
         skip,
         take,
@@ -39,7 +109,7 @@ export class ExpenseService {
           },
         },
       }),
-      this.prisma.expense.count({ where: { userId } }),
+      this.prisma.expense.count({ where }),
     ]);
 
     return {

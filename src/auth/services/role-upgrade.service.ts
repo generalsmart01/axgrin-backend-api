@@ -1,6 +1,6 @@
 // src/auth/services/role-upgrade.service.ts
 import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { Role } from '@prisma/client';
 
 @Injectable()

@@ -23,8 +23,8 @@ export class MainPageStatisticsDto {
   @ApiProperty({ description: 'Total transactions count', example: 50000 })
   totalTransactions: number;
 
-  @ApiProperty({ description: 'Total budget goals', example: 3500 })
-  totalBudgetGoals: number;
+  @ApiProperty({ description: 'Total budgets', example: 3500 })
+  totalBudgets: number;
 
   @ApiProperty({ description: 'Total categories created', example: 2500 })
   totalCategories: number;

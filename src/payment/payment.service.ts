@@ -1,7 +1,7 @@
 // src/payment/payment.service.ts
 import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 import Stripe from 'stripe';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
 import { SubscriptionPlan, SubscriptionStatus, Role } from '@prisma/client';

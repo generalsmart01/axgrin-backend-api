@@ -3,7 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { RealAIService } from './real-ai.service';
 import { FinancialContextService } from './financial-context.service';
 import { ResponseTemplateService } from './response-template.service';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 export interface EnhancedAIResponse {
   response: string;

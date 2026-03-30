@@ -34,14 +34,12 @@ async function bootstrap() {
   });
 
   // Enable CORS
+  const allowedOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim())
+    : [];
+
   app.enableCors({
-    origin: [
-      'http://localhost:3002',
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:3003',
-      'https://axgrin.vercel.app',
-    ], // Add your frontend URLs
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     credentials: true, // Allow cookies and authorization headers
@@ -177,7 +175,7 @@ API requests are rate-limited to 100 requests per 15-minute window to prevent ab
     }),
   );
 
-  const port = process.env.PORT || 3300;
+  const port = process.env.PORT || 3400;
   await app.listen(port);
   console.log(`🚀 Server is running on: http://localhost:${port}`);
   console.log(`📚 API Documentation: http://localhost:${port}/api/docs`);

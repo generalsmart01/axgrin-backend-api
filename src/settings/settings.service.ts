@@ -1,6 +1,6 @@
 // src/settings/settings.service.ts
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 
 @Injectable()

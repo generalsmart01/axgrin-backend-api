@@ -1,6 +1,6 @@
 // src/ai/financial-context.service.ts
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 export interface FinancialContext {
   userId: string;
@@ -8,7 +8,7 @@ export interface FinancialContext {
   totalExpenses: number;
   netIncome: number;
   categories: any[];
-  budgetGoals: any[];
+  budgets: any[];
   recentExpenses: any[];
   spendingPatterns: any;
 }
@@ -50,14 +50,14 @@ export interface BudgetStatus {
 
 @Injectable()
 export class FinancialContextService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async getUserFinancialContext(userId: string): Promise<FinancialContext> {
-    const [income, expenses, categories, budgetGoals] = await Promise.all([
+    const [income, expenses, categories, budgets] = await Promise.all([
       this.getTotalIncome(userId),
       this.getTotalExpenses(userId),
       this.getUserCategories(userId),
-      this.getUserBudgetGoals(userId),
+      this.getUserBudgets(userId),
     ]);
 
     const recentExpenses = await this.getRecentExpenses(userId, 30);
@@ -69,7 +69,7 @@ export class FinancialContextService {
       totalExpenses: expenses,
       netIncome: income - expenses,
       categories,
-      budgetGoals,
+      budgets,
       recentExpenses,
       spendingPatterns,
     };
@@ -126,18 +126,18 @@ export class FinancialContextService {
       0,
     );
 
-    const budgetGoals = await this.prisma.budgetGoal.findMany({
+    const budgets = await this.prisma.budget.findMany({
       where: {
         userId,
-        startDate: { lte: endOfMonth },
-        endDate: { gte: startOfMonth },
+        month: currentMonth.getMonth() + 1,
+        year: currentMonth.getFullYear(),
       },
       include: {
         category: true,
       },
     });
 
-    const totalBudget = budgetGoals.reduce((sum, goal) => sum + goal.target, 0);
+    const totalBudget = budgets.reduce((sum, b) => sum + b.amount, 0);
 
     const categorySpending = await this.getCategorySpending(
       userId,
@@ -168,34 +168,34 @@ export class FinancialContextService {
     }> = [];
     let totalSpent = 0;
 
-    for (const goal of budgetGoals) {
-      const spent = categorySpending[goal.categoryId] || 0;
+    for (const budget of budgets) {
+      const spent = categorySpending[budget.categoryId] || 0;
       totalSpent += spent;
 
-      const percentage = (spent / goal.target) * 100;
+      const percentage = (spent / budget.amount) * 100;
 
       if (percentage > 100) {
         overBudgetCategories.push({
-          category: goal.category.name,
-          budget: goal.target,
+          category: budget.category.name,
+          budget: budget.amount,
           spent,
-          overage: spent - goal.target,
+          overage: spent - budget.amount,
           percentage,
         });
       } else if (percentage < 80) {
         underBudgetCategories.push({
-          category: goal.category.name,
-          budget: goal.target,
+          category: budget.category.name,
+          budget: budget.amount,
           spent,
-          remaining: goal.target - spent,
+          remaining: budget.amount - spent,
           percentage,
         });
       } else {
         onTrackCategories.push({
-          category: goal.category.name,
-          budget: goal.target,
+          category: budget.category.name,
+          budget: budget.amount,
           spent,
-          remaining: goal.target - spent,
+          remaining: budget.amount - spent,
           percentage,
         });
       }
@@ -272,20 +272,24 @@ export class FinancialContextService {
   }
 
   async getCurrentGoals(userId: string): Promise<any[]> {
-    const goals = await this.prisma.budgetGoal.findMany({
-      where: { userId },
+    const now = new Date();
+    const budgets = await this.prisma.budget.findMany({
+      where: {
+        userId,
+        month: now.getMonth() + 1,
+        year: now.getFullYear(),
+      },
       include: { category: true },
-      orderBy: { startDate: 'desc' },
     });
 
     return Promise.all(
-      goals.map(async (goal) => ({
-        id: goal.id,
-        category: goal.category.name,
-        target: goal.target,
-        startDate: goal.startDate,
-        endDate: goal.endDate,
-        progress: await this.calculateGoalProgress(goal.id),
+      budgets.map(async (budget) => ({
+        id: budget.id,
+        category: budget.category.name,
+        target: budget.amount,
+        month: budget.month,
+        year: budget.year,
+        progress: await this.calculateGoalProgress(budget.id),
       })),
     );
   }
@@ -339,8 +343,8 @@ export class FinancialContextService {
       score -= 30;
     }
 
-    // Add points for having budget goals
-    if (context.budgetGoals.length > 0) {
+    // Add points for having budgets
+    if (context.budgets.length > 0) {
       score += 10;
     }
 
@@ -376,8 +380,8 @@ export class FinancialContextService {
     });
   }
 
-  private async getUserBudgetGoals(userId: string): Promise<any[]> {
-    return this.prisma.budgetGoal.findMany({
+  private async getUserBudgets(userId: string): Promise<any[]> {
+    return this.prisma.budget.findMany({
       where: { userId },
       include: { category: true },
     });
@@ -617,22 +621,25 @@ export class FinancialContextService {
     return recurring;
   }
 
-  private async calculateGoalProgress(goalId: string): Promise<number> {
-    const goal = await this.prisma.budgetGoal.findUnique({
-      where: { id: goalId },
+  private async calculateGoalProgress(budgetId: string): Promise<number> {
+    const budget = await this.prisma.budget.findUnique({
+      where: { id: budgetId },
     });
 
-    if (!goal) return 0;
+    if (!budget) return 0;
+
+    const startDate = new Date(budget.year, budget.month - 1, 1);
+    const endDate = new Date(budget.year, budget.month, 0, 23, 59, 59);
 
     const expenses = await this.prisma.expense.findMany({
       where: {
-        categoryId: goal.categoryId,
-        date: { gte: goal.startDate, lte: goal.endDate },
+        categoryId: budget.categoryId,
+        date: { gte: startDate, lte: endDate },
       },
     });
 
     const spent = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-    return Math.min(100, (spent / goal.target) * 100);
+    return Math.min(100, (spent / budget.amount) * 100);
   }
 
   private calculateTrend(monthlyData: any[]): string {

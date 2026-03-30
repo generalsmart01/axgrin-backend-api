@@ -1,17 +1,17 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import {
   UserAnalyticsDto,
   MonthlyAnalyticsDto,
   CategoryAnalyticsDto,
-  BudgetGoalAnalyticsDto,
+  BudgetAnalyticsDto,
   AdminAnalyticsDto,
   DashboardAnalyticsDto,
 } from './dto/analytics-response.dto';
 
 @Injectable()
 export class AnalyticsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async getUserAnalytics(userId: string): Promise<UserAnalyticsDto> {
     const user = await this.prisma.user.findUnique({
@@ -19,7 +19,7 @@ export class AnalyticsService {
       include: {
         incomes: true,
         expenses: true,
-        budgetGoals: true,
+        budgets: true,
         categories: true,
       },
     });
@@ -59,7 +59,7 @@ export class AnalyticsService {
       name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User',
       totalIncomes: user.incomes.length,
       totalExpenses: user.expenses.length,
-      totalBudgetGoals: user.budgetGoals.length,
+      totalBudgets: user.budgets.length,
       totalCategories: user.categories.length,
       totalIncomeAmount,
       totalExpenseAmount,
@@ -136,8 +136,8 @@ export class AnalyticsService {
 
   async getBudgetGoalsAnalytics(
     userId: string,
-  ): Promise<BudgetGoalAnalyticsDto[]> {
-    const goals = await this.prisma.budgetGoal.findMany({
+  ): Promise<BudgetAnalyticsDto[]> {
+    const budgets = await this.prisma.budget.findMany({
       where: { userId },
       include: {
         category: true,
@@ -145,15 +145,17 @@ export class AnalyticsService {
     });
 
     const goalsWithProgress = await Promise.all(
-      goals.map(async (goal) => {
-        // Calculate current progress by summing expenses in this category
+      budgets.map(async (budget) => {
+        const startDate = new Date(budget.year, budget.month - 1, 1);
+        const endDate = new Date(budget.year, budget.month, 0, 23, 59, 59);
+
         const currentAmount = await this.prisma.expense.aggregate({
           where: {
             userId,
-            categoryId: goal.categoryId,
+            categoryId: budget.categoryId,
             date: {
-              gte: goal.startDate,
-              lte: goal.endDate,
+              gte: startDate,
+              lte: endDate,
             },
           },
           _sum: {
@@ -163,10 +165,10 @@ export class AnalyticsService {
 
         const progress = currentAmount._sum?.amount || 0;
         const progressPercentage =
-          goal.target > 0 ? (progress / goal.target) * 100 : 0;
+          budget.amount > 0 ? (progress / budget.amount) * 100 : 0;
 
         let status: 'ON_TRACK' | 'AT_RISK' | 'EXCEEDED' | 'COMPLETED';
-        if (progress >= goal.target) {
+        if (progress >= budget.amount) {
           status = 'COMPLETED';
         } else if (progressPercentage >= 90) {
           status = 'AT_RISK';
@@ -177,9 +179,9 @@ export class AnalyticsService {
         }
 
         return {
-          goalId: goal.id,
-          goalName: goal.category.name, // Use category name as goal name
-          targetAmount: goal.target,
+          goalId: budget.id,
+          goalName: budget.category.name,
+          targetAmount: budget.amount,
           currentAmount: Number(progress),
           progressPercentage: Math.min(progressPercentage, 100),
           status,
@@ -317,13 +319,13 @@ export class AnalyticsService {
     const userAnalytics = await this.getUserAnalytics(userId);
     const monthlyAnalytics = await this.getMonthlyAnalytics(userId);
     const categoryAnalytics = await this.getCategoryAnalytics(userId);
-    const budgetGoalsAnalytics = await this.getBudgetGoalsAnalytics(userId);
+    const budgetsAnalytics = await this.getBudgetGoalsAnalytics(userId);
 
     const dashboardData: DashboardAnalyticsDto = {
       userAnalytics,
       monthlyAnalytics,
       categoryAnalytics,
-      budgetGoalsAnalytics,
+      budgetsAnalytics,
     };
 
     // Add admin analytics if user is ADMIN

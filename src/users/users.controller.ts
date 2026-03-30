@@ -28,7 +28,7 @@ import {
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
   @Get()
   @Roles('ADMIN')
@@ -49,7 +49,7 @@ export class UsersController {
           lastName: { type: 'string', nullable: true, example: 'Doe' },
           role: { type: 'string', enum: ['USER', 'ADMIN', 'PREMIUM', 'VIEWER', 'CUSTOMER_CARE'] },
           gender: { type: 'string', enum: ['MALE', 'FEMALE'], nullable: true },
-          emailVerified: { type: 'boolean', example: true },
+          isVerified: { type: 'boolean', example: true },
           createdAt: { type: 'string', format: 'date-time' },
           updatedAt: { type: 'string', format: 'date-time' },
         },
@@ -78,6 +78,8 @@ export class UsersController {
         firstName: { type: 'string', nullable: true },
         lastName: { type: 'string', nullable: true },
         role: { type: 'string' },
+        onboardingStatus: { type: 'string', enum: ['INCOMPLETE', 'STARTED', 'COMPLETED'] },
+        onboardingStep: { type: 'number', example: 1 },
       },
     },
   })
@@ -109,6 +111,8 @@ export class UsersController {
         firstName: { type: 'string', nullable: true },
         lastName: { type: 'string', nullable: true },
         role: { type: 'string' },
+        onboardingStatus: { type: 'string', enum: ['INCOMPLETE', 'STARTED', 'COMPLETED'] },
+        onboardingStep: { type: 'number', example: 1 },
       },
     },
   })
